@@ -1,4 +1,5 @@
 """Admin-only endpoints."""
+import redis.asyncio as aioredis
 from fastapi import APIRouter, Depends, Query
 from pydantic import BaseModel
 from sqlalchemy import func, select
@@ -6,6 +7,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.core.database import get_db
 from src.core.dependencies import get_admin_user
+from src.core.redis import get_redis
 from src.models.affiliate import Affiliate
 from src.models.market import Market
 from src.models.subscription import Subscription
@@ -128,3 +130,27 @@ async def delete_user(
     user.is_active = False
     await db.commit()
     return {"detail": "User deactivated", "user_id": user_id}
+
+
+@router.get("/ingestion/status")
+async def ingestion_status(
+    admin: User = Depends(get_admin_user),
+    redis: aioredis.Redis = Depends(get_redis),
+):
+    """Get live ingestion status — counts per platform from Redis."""
+    platforms: dict[str, int] = {}
+    total_keys = 0
+
+    async for key in redis.scan_iter(match="odds:live:*", count=500):
+        key_str = key if isinstance(key, str) else key.decode()
+        total_keys += 1
+        # Key format: odds:live:{platform}:{market_id}
+        parts = key_str.split(":", 3)
+        if len(parts) >= 3:
+            platform = parts[2]
+            platforms[platform] = platforms.get(platform, 0) + 1
+
+    return {
+        "total_keys": total_keys,
+        "platforms": dict(sorted(platforms.items(), key=lambda x: -x[1])),
+    }

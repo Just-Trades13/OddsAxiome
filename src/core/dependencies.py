@@ -9,7 +9,7 @@ from src.core.redis import get_redis
 from src.core.security import verify_firebase_token
 from src.models.user import User
 
-TIER_ORDER = {"free": 0, "pro": 1, "premium": 2}
+TIER_ORDER = {"free": 0, "explorer": 1, "pro": 2}
 
 
 async def get_current_user(

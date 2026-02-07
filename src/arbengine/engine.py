@@ -7,6 +7,7 @@ import orjson
 import structlog
 
 from src.arbengine.detector import ArbLegData, ArbResult, detect_arbitrage
+from src.arbengine.matcher import cluster_titles
 
 logger = structlog.get_logger()
 
@@ -29,6 +30,10 @@ class ArbEngine:
             lambda: defaultdict(list)
         )
         self._market_categories: dict[str, str] = {}
+        # Fuzzy title clustering: raw_title -> canonical_title
+        self._title_map: dict[str, str] = {}
+        self._recluster_counter = 0
+        self._RECLUSTER_INTERVAL = 60  # recluster titles every N detection cycles
 
     async def run(self) -> None:
         """Main loop: consume stream + periodic detection."""
@@ -76,13 +81,13 @@ class ArbEngine:
 
     def _process_message(self, data: dict) -> None:
         """Buffer an odds update for the next detection cycle."""
-        market_title = data.get("market_title", "")
+        raw_title = data.get("market_title", "")
         outcome_name = data.get("outcome_name", "")
         platform = data.get("platform", "")
         market_id = data.get("market_id", "")
         category = data.get("category", "")
 
-        if not all([market_title, outcome_name, platform]):
+        if not all([raw_title, outcome_name, platform]):
             return
 
         try:
@@ -94,7 +99,9 @@ class ArbEngine:
         if implied_prob <= 0 or implied_prob >= 1.0:
             return
 
-        self._market_categories[market_title] = category
+        # Resolve to canonical title via fuzzy matching
+        canonical = self._title_map.get(raw_title, raw_title)
+        self._market_categories[canonical] = category
 
         leg = ArbLegData(
             platform=platform,
@@ -105,9 +112,8 @@ class ArbEngine:
         )
 
         # Keep only the latest odds per platform per outcome
-        outcome_odds = self._odds_buffer[market_title][outcome_name]
-        # Remove old entry from same platform
-        self._odds_buffer[market_title][outcome_name] = [
+        outcome_odds = self._odds_buffer[canonical][outcome_name]
+        self._odds_buffer[canonical][outcome_name] = [
             o for o in outcome_odds if o.platform != platform
         ] + [leg]
 
@@ -124,6 +130,31 @@ class ArbEngine:
 
     async def _run_detection(self) -> None:
         """Scan all buffered markets for arbitrage opportunities."""
+        # Periodically recluster titles for fuzzy cross-platform matching
+        self._recluster_counter += 1
+        if self._recluster_counter >= self._RECLUSTER_INTERVAL:
+            self._recluster_counter = 0
+            all_titles = list(self._odds_buffer.keys())
+            new_map = cluster_titles(all_titles)
+            if new_map != self._title_map:
+                # Merge buffers for newly-matched titles
+                merged_count = 0
+                for raw, canonical in new_map.items():
+                    if raw != canonical and raw in self._odds_buffer:
+                        for outcome, legs in self._odds_buffer[raw].items():
+                            existing = self._odds_buffer[canonical][outcome]
+                            seen_platforms = {o.platform for o in existing}
+                            for leg in legs:
+                                if leg.platform not in seen_platforms:
+                                    existing.append(leg)
+                                    seen_platforms.add(leg.platform)
+                            self._odds_buffer[canonical][outcome] = existing
+                        del self._odds_buffer[raw]
+                        merged_count += 1
+                self._title_map = new_map
+                if merged_count:
+                    logger.info("Fuzzy title recluster", merged=merged_count, total=len(all_titles))
+
         arb_count = 0
 
         for market_title, odds_by_outcome in self._odds_buffer.items():
