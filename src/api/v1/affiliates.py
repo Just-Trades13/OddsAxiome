@@ -42,6 +42,9 @@ async def stats(
 ):
     """Get affiliate dashboard stats — clicks, conversions, earnings."""
     data = await get_affiliate_stats(db, user.id)
+    if "error" in data:
+        from fastapi import HTTPException
+        raise HTTPException(status_code=404, detail=data["error"])
     return AffiliateStatsResponse(**data)
 
 

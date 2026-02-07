@@ -22,5 +22,5 @@ class User(Base, TimestampMixin):
     is_active: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
     last_login_at: Mapped[str | None] = mapped_column(DateTime(timezone=True))
 
-    subscription: Mapped["Subscription"] = relationship(back_populates="user", uselist=False)
-    affiliate: Mapped["Affiliate"] = relationship(back_populates="user", uselist=False)
+    subscription: Mapped["Subscription"] = relationship(back_populates="user", uselist=False, lazy="selectin")
+    affiliate: Mapped["Affiliate"] = relationship(back_populates="user", uselist=False, lazy="selectin")
