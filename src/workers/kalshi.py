@@ -78,15 +78,16 @@ class KalshiWorker(BaseIngestionWorker):
         results: list[RawOddsData] = []
 
         try:
-            # Fetch active events (with_nested_markets includes markets inline)
+            # Fetch active events
             cursor = None
             pages = 0
             max_pages = 5
             while pages < max_pages:
-                params = {"status": "open", "limit": 100, "with_nested_markets": "true"}
+                params = {"status": "open", "limit": 100}
                 if cursor:
                     params["cursor"] = cursor
 
+                self.logger.info("Kalshi fetching events page", page=pages + 1)
                 resp = await self.client.get("/events", params=params)
                 resp.raise_for_status()
                 data = resp.json()

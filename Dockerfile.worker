@@ -7,10 +7,11 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     && rm -rf /var/lib/apt/lists/*
 
 COPY pyproject.toml .
+RUN pip install --no-cache-dir .
+
+# Code layer — separate from pip install for faster rebuilds
 COPY src/ src/
 COPY scripts/ scripts/
-
-RUN pip install --no-cache-dir .
 
 # Ingestion workers — polls prediction market APIs and publishes to Redis
 ENV WORKER_SOURCES="polymarket,kalshi,predictit,theoddsapi,gemini,coinbase,robinhood,limitless"
