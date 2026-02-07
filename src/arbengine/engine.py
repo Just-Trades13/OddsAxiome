@@ -176,28 +176,47 @@ class ArbEngine:
             logger.info("Arbitrage opportunities detected", count=arb_count)
 
     async def _publish_arb(self, arb: ArbResult) -> None:
-        """Publish arbitrage alert to Redis pub/sub for WebSocket clients."""
-        alert = {
-            "type": "arb_alert",
-            "data": {
-                "market_title": arb.market_title,
-                "category": arb.category,
-                "expected_profit": arb.expected_profit,
-                "total_implied": arb.total_implied,
-                "legs": [
-                    {
-                        "platform": leg.platform,
-                        "outcome_name": leg.outcome_name,
-                        "price": leg.price,
-                        "implied_prob": leg.implied_prob,
-                    }
-                    for leg in arb.legs
-                ],
-                "detected_at": datetime.now(timezone.utc).isoformat(),
-            },
+        """Publish arb alert to Redis pub/sub + persist to Redis sorted set."""
+        now = datetime.now(timezone.utc)
+        arb_data = {
+            "market_title": arb.market_title,
+            "category": arb.category,
+            "expected_profit": arb.expected_profit,
+            "total_implied": arb.total_implied,
+            "legs": [
+                {
+                    "platform": leg.platform,
+                    "market_id": leg.market_id,
+                    "outcome_name": leg.outcome_name,
+                    "price": leg.price,
+                    "implied_prob": leg.implied_prob,
+                }
+                for leg in arb.legs
+            ],
+            "detected_at": now.isoformat(),
         }
 
-        await self.redis.publish(ARB_ALERT_CHANNEL, orjson.dumps(alert).decode())
+        pipe = self.redis.pipeline()
+
+        # 1) Pub/sub alert for WebSocket clients
+        alert = {"type": "arb_alert", "data": arb_data}
+        pipe.publish(ARB_ALERT_CHANNEL, orjson.dumps(alert).decode())
+
+        # 2) Persist to Redis hash for REST API queries (key by market title hash)
+        import hashlib
+        arb_key = hashlib.md5(arb.market_title.encode()).hexdigest()[:12]
+        pipe.hset(f"arb:opp:{arb_key}", mapping={
+            "data": orjson.dumps(arb_data).decode(),
+            "profit": str(arb.expected_profit),
+        })
+        pipe.expire(f"arb:opp:{arb_key}", 300)  # Expire after 5 minutes
+
+        # 3) Add to sorted set (score = profit %) for ranked queries
+        pipe.zadd("arb:active", {arb_key: arb.expected_profit})
+        pipe.expire("arb:active", 300)
+
+        await pipe.execute()
+
         logger.info(
             "Arb alert published",
             market=arb.market_title,

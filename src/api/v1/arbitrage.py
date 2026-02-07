@@ -1,87 +1,74 @@
-"""Arbitrage opportunity endpoints."""
+"""Arbitrage opportunity endpoints — reads live arbs from Redis."""
+import orjson
 import redis.asyncio as aioredis
 from fastapi import APIRouter, Depends, Query
-from sqlalchemy import select
-from sqlalchemy.ext.asyncio import AsyncSession
 
-from src.core.database import get_db
-from src.core.dependencies import TierGate
-from src.core.exceptions import NotFoundError
+from src.core.dependencies import TierGate, get_current_user
 from src.core.redis import get_redis
-from src.models.arbitrage import ArbLeg, ArbOpportunity
 from src.models.user import User
-from src.schemas.arbitrage import ArbOpportunityResponse
 
 router = APIRouter()
 
 
-@router.get("/opportunities", response_model=list[ArbOpportunityResponse])
+@router.get("/opportunities")
 async def list_arb_opportunities(
     category: str | None = None,
     min_profit: float = Query(0.0, ge=0.0),
     page: int = Query(1, ge=1),
     per_page: int = Query(50, ge=1, le=200),
-    user: User = Depends(TierGate("pro")),
-    db: AsyncSession = Depends(get_db),
+    user: User = Depends(get_current_user),
+    redis: aioredis.Redis = Depends(get_redis),
 ):
-    """Get active arbitrage opportunities. Requires Pro tier."""
-    query = (
-        select(ArbOpportunity)
-        .where(ArbOpportunity.status == "active")
-        .order_by(ArbOpportunity.expected_profit.desc())
-    )
+    """Get active arbitrage opportunities from Redis. Requires login."""
+    # Get all arb keys sorted by profit (descending)
+    arb_keys = await redis.zrevrange("arb:active", 0, -1)
 
-    if category:
-        query = query.where(ArbOpportunity.category == category)
+    if not arb_keys:
+        return {"data": [], "meta": {"page": page, "per_page": per_page, "total": 0, "total_pages": 0}}
 
-    if min_profit > 0:
-        query = query.where(ArbOpportunity.expected_profit >= min_profit)
+    # Pipeline fetch all arb data
+    pipe = redis.pipeline()
+    for key in arb_keys:
+        key_str = key if isinstance(key, str) else key.decode()
+        pipe.hget(f"arb:opp:{key_str}", "data")
+    results = await pipe.execute()
 
-    offset = (page - 1) * per_page
-    query = query.offset(offset).limit(per_page)
+    # Parse and filter
+    opportunities = []
+    for raw in results:
+        if not raw:
+            continue
+        try:
+            data = orjson.loads(raw)
+        except Exception:
+            continue
 
-    result = await db.execute(query)
-    opportunities = result.scalars().all()
+        if category and data.get("category", "").lower() != category.lower():
+            continue
+        if data.get("expected_profit", 0) < min_profit:
+            continue
 
-    # Load legs for each opportunity
-    responses = []
-    for opp in opportunities:
-        legs_result = await db.execute(
-            select(ArbLeg).where(ArbLeg.opportunity_id == opp.id)
-        )
-        legs = legs_result.scalars().all()
-        resp = ArbOpportunityResponse.model_validate(opp)
-        resp.legs = [
-            {"platform_id": l.platform_id, "market_id": l.market_id,
-             "outcome_name": l.outcome_name, "price": float(l.price),
-             "implied_prob": float(l.implied_prob), "suggested_stake": float(l.suggested_stake) if l.suggested_stake else None}
-            for l in legs
-        ]
-        responses.append(resp)
+        opportunities.append(data)
 
-    return responses
+    # Paginate
+    total = len(opportunities)
+    start = (page - 1) * per_page
+    end = start + per_page
+    return {
+        "data": opportunities[start:end],
+        "meta": {
+            "page": page,
+            "per_page": per_page,
+            "total": total,
+            "total_pages": (total + per_page - 1) // per_page,
+        },
+    }
 
 
-@router.get("/opportunities/{opp_id}", response_model=ArbOpportunityResponse)
-async def get_arb_opportunity(
-    opp_id: str,
-    user: User = Depends(TierGate("pro")),
-    db: AsyncSession = Depends(get_db),
+@router.get("/opportunities/count")
+async def arb_count(
+    redis: aioredis.Redis = Depends(get_redis),
 ):
-    """Get a single arbitrage opportunity with all legs."""
-    result = await db.execute(select(ArbOpportunity).where(ArbOpportunity.id == opp_id))
-    opp = result.scalar_one_or_none()
-    if not opp:
-        raise NotFoundError("Arbitrage opportunity not found")
-
-    legs_result = await db.execute(select(ArbLeg).where(ArbLeg.opportunity_id == opp.id))
-    legs = legs_result.scalars().all()
-
-    resp = ArbOpportunityResponse.model_validate(opp)
-    resp.legs = [
-        {"platform_id": l.platform_id, "market_id": l.market_id,
-         "outcome_name": l.outcome_name, "price": float(l.price),
-         "implied_prob": float(l.implied_prob), "suggested_stake": float(l.suggested_stake) if l.suggested_stake else None}
-        for l in legs
-    ]
-    return resp
+    """Public endpoint — just the count of active arb opportunities."""
+    count = await redis.zcard("arb:active")
+    return {"active_opportunities": count or 0}

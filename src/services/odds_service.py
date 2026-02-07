@@ -82,14 +82,19 @@ async def get_all_live_odds(
         parts = key.split(":", 3)
         market_id = parts[3] if len(parts) > 3 else ""
 
+        platform_url = data.get("market_url", "")
+
         if title not in markets:
             markets[title] = {
                 "market_id": market_id,
                 "market_title": title,
                 "category": mkt_category,
-                "market_url": data.get("market_url", ""),
+                "market_url": platform_url,
                 "platforms": [],
             }
+        elif not markets[title]["market_url"] and platform_url:
+            # Fill in market_url from a later platform if the first was empty
+            markets[title]["market_url"] = platform_url
 
         platform = data.get("platform", "unknown")
         outcomes = []
@@ -106,6 +111,7 @@ async def get_all_live_odds(
         markets[title]["platforms"].append({
             "platform_slug": platform,
             "outcomes": outcomes,
+            "market_url": platform_url,
             "volume_24h": float(data["volume_24h"]) if data.get("volume_24h") else None,
             "liquidity_usd": float(data["liquidity_usd"]) if data.get("liquidity_usd") else None,
             "updated_at": data.get("updated_at"),
