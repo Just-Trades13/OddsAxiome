@@ -43,7 +43,12 @@ async def get_live_odds_for_market(redis: aioredis.Redis, market_id: str) -> lis
     return results
 
 
-async def get_all_live_odds(redis: aioredis.Redis, page: int = 1, per_page: int = 50) -> list[dict]:
+async def get_all_live_odds(
+    redis: aioredis.Redis,
+    page: int = 1,
+    per_page: int = 50,
+    category: str | None = None,
+) -> dict:
     """Get all live odds from Redis, grouped by market."""
     markets: dict[str, dict] = {}
 
@@ -58,10 +63,23 @@ async def get_all_live_odds(redis: aioredis.Redis, page: int = 1, per_page: int 
         if not title:
             continue
 
+        mkt_category = data.get("category", "")
+
+        # Filter by category if specified
+        if category and mkt_category.lower() != category.lower():
+            continue
+
+        # Extract market_id from Redis key: odds:live:{platform}:{market_id}
+        key_str = key if isinstance(key, str) else key.decode()
+        parts = key_str.split(":", 3)
+        market_id = parts[3] if len(parts) > 3 else ""
+
         if title not in markets:
             markets[title] = {
+                "market_id": market_id,
                 "market_title": title,
-                "category": data.get("category", ""),
+                "category": mkt_category,
+                "market_url": data.get("market_url", ""),
                 "platforms": [],
             }
 
@@ -80,14 +98,25 @@ async def get_all_live_odds(redis: aioredis.Redis, page: int = 1, per_page: int 
         markets[title]["platforms"].append({
             "platform_slug": platform,
             "outcomes": outcomes,
+            "volume_24h": float(data["volume_24h"]) if data.get("volume_24h") else None,
+            "liquidity_usd": float(data["liquidity_usd"]) if data.get("liquidity_usd") else None,
             "updated_at": data.get("updated_at"),
         })
 
     # Paginate
     all_markets = list(markets.values())
+    total = len(all_markets)
     start = (page - 1) * per_page
     end = start + per_page
-    return all_markets[start:end]
+    return {
+        "data": all_markets[start:end],
+        "meta": {
+            "page": page,
+            "per_page": per_page,
+            "total": total,
+            "total_pages": (total + per_page - 1) // per_page,
+        },
+    }
 
 
 async def get_odds_history(

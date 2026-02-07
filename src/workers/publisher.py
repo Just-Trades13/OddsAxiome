@@ -35,6 +35,7 @@ async def publish_odds(redis, odds: list[NormalizedOdds]) -> None:
                 "market_title": o.market_title,
                 "category": o.category,
                 "platform": o.platform_slug,
+                "market_url": o.market_url or "",
                 "updated_at": o.captured_at.isoformat(),
             },
         )

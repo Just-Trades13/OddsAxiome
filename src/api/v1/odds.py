@@ -16,10 +16,11 @@ router = APIRouter()
 async def live_odds(
     page: int = Query(1, ge=1),
     per_page: int = Query(50, ge=1, le=200),
+    category: str | None = Query(None),
     redis: aioredis.Redis = Depends(get_redis),
 ):
     """Get all live odds from Redis cache, grouped by market."""
-    return await get_all_live_odds(redis, page=page, per_page=per_page)
+    return await get_all_live_odds(redis, page=page, per_page=per_page, category=category)
 
 
 @router.get("/live/{market_id}")
