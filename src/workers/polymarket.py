@@ -38,11 +38,17 @@ CATEGORY_MAP = {
 }
 
 
-def classify_category(title: str, tags: list[str] | None = None) -> str:
+def classify_category(title: str, tags: list | None = None) -> str:
     """Classify a market into one of the 6 OddsAxiom categories."""
     search_text = title.lower()
     if tags:
-        search_text += " " + " ".join(t.lower() for t in tags)
+        tag_strings = []
+        for t in tags:
+            if isinstance(t, str):
+                tag_strings.append(t.lower())
+            elif isinstance(t, dict):
+                tag_strings.append(str(t.get("label", t.get("name", ""))).lower())
+        search_text += " " + " ".join(tag_strings)
 
     for keyword, category in CATEGORY_MAP.items():
         if keyword in search_text:

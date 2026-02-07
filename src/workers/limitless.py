@@ -7,6 +7,8 @@ from src.workers.base import BaseIngestionWorker, RawOddsData
 logger = structlog.get_logger()
 
 LIMITLESS_API_BASE = "https://api.limitless.exchange/api-v1"
+# Note: Limitless API requires wallet signature auth for all endpoints.
+# This worker will gracefully return empty until auth is implemented.
 
 
 class LimitlessWorker(BaseIngestionWorker):
@@ -38,6 +40,10 @@ class LimitlessWorker(BaseIngestionWorker):
                 return []
 
             resp.raise_for_status()
+            content_type = resp.headers.get("content-type", "")
+            if "html" in content_type:
+                self.logger.debug("Limitless returned HTML (auth required), skipping")
+                return []
             markets = resp.json()
 
             if not isinstance(markets, list):
