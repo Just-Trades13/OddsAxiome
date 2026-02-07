@@ -5,6 +5,7 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.core.config import settings
+from src.models.affiliate import Affiliate, AffiliateConversion
 from src.models.subscription import Subscription, SubscriptionTier
 from src.models.user import User
 
@@ -133,6 +134,35 @@ async def _handle_checkout_completed(db: AsyncSession, session_data: dict) -> No
     # Update user tier
     user.tier = tier_slug
     logger.info("Subscription activated", user_id=user_id, tier=tier_slug)
+
+    # Record affiliate conversion if this user was referred
+    if user.ref_code_used:
+        try:
+            aff_result = await db.execute(
+                select(Affiliate).where(Affiliate.code == user.ref_code_used, Affiliate.is_active == True)
+            )
+            affiliate = aff_result.scalar_one_or_none()
+            if affiliate:
+                amount = float(tier.price_monthly)
+                commission = amount * float(affiliate.commission_rate)
+                conversion = AffiliateConversion(
+                    affiliate_id=affiliate.id,
+                    user_id=user.id,
+                    subscription_id=sub.id,
+                    amount=amount,
+                    commission=commission,
+                    status="pending",
+                )
+                db.add(conversion)
+                affiliate.total_earned = float(affiliate.total_earned) + commission
+                logger.info(
+                    "Affiliate conversion recorded",
+                    affiliate_code=user.ref_code_used,
+                    user_id=user_id,
+                    commission=commission,
+                )
+        except Exception as e:
+            logger.error("Failed to record affiliate conversion", error=str(e))
 
 
 async def _handle_subscription_updated(db: AsyncSession, sub_data: dict) -> None:

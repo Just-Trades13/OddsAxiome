@@ -304,8 +304,9 @@ export const AuthModal: React.FC<AuthModalProps> = ({ onClose, onComplete, initi
       try {
         const userCred = await signInWithEmailAndPassword(auth, formData.email, formData.password);
 
-        // Sync with backend
-        await syncUser({ first_name: userCred.user.displayName?.split(' ')[0] || 'User' });
+        // Sync with backend (include affiliate ref code if present)
+        const refCode = sessionStorage.getItem('oddsaxiom_ref_code') || undefined;
+        await syncUser({ first_name: userCred.user.displayName?.split(' ')[0] || 'User', ref_code: refCode });
         const userData = await getMe() as any;
         const user: User = {
           id: userData.id || userCred.user.uid,
@@ -333,9 +334,11 @@ export const AuthModal: React.FC<AuthModalProps> = ({ onClose, onComplete, initi
         await updateProfile(userCred.user, { displayName: formData.firstName });
         await sendEmailVerification(userCred.user, actionCodeSettings);
 
-        // Sync new user to backend
+        // Sync new user to backend (include affiliate ref code if present)
+        const refCode = sessionStorage.getItem('oddsaxiom_ref_code') || undefined;
         await syncUser({
           first_name: formData.firstName,
+          ref_code: refCode,
         });
 
         const newUser: User = {

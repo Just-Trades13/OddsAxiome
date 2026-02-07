@@ -43,6 +43,23 @@ export type Theme = 'dark' | 'light';
 const STORAGE_KEY_ORDER = 'oddsaxiom_v1_stable_order';
 const STORAGE_KEY_HIDE_TOOLTIP = 'oddsaxiom_hide_onboarding_tip';
 const STORAGE_KEY_THEME = 'oddsaxiom_theme_pref';
+const STORAGE_KEY_REF = 'oddsaxiom_ref_code';
+
+/** Capture affiliate ref code from URL on first load, persist in sessionStorage */
+function captureRefCode(): string | null {
+  const params = new URLSearchParams(window.location.search);
+  const ref = params.get('ref');
+  if (ref) {
+    sessionStorage.setItem(STORAGE_KEY_REF, ref);
+    // Clean the URL without reloading
+    params.delete('ref');
+    const clean = params.toString();
+    window.history.replaceState({}, '', window.location.pathname + (clean ? '?' + clean : ''));
+  }
+  return ref || sessionStorage.getItem(STORAGE_KEY_REF) || null;
+}
+
+const capturedRefCode = captureRefCode();
 
 const initialMarketState: MarketDataState = Object.values(MarketCategory).reduce((acc, cat) => ({
   ...acc,
@@ -111,6 +128,7 @@ export default function App() {
           // Sync user to backend (creates if not exists)
           await syncUser({
             first_name: firebaseUser.displayName?.split(' ')[0] || 'User',
+            ref_code: capturedRefCode || undefined,
           });
 
           // Fetch full user profile from backend
