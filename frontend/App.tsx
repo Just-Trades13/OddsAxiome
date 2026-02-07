@@ -290,7 +290,9 @@ export default function App() {
   const normalize = (str: string) => (str || '').toLowerCase().replace(/[^a-z0-9]/g, '');
 
   const currentCategoryData = marketData[activeSport] as MarketDataState[MarketCategory];
-  
+  const userTier: UserTier = currentUser?.tier || 'free';
+  const FREE_MARKET_LIMIT = 20;
+
   const { events: displayedEvents, truncated: isEventsTruncated } = useMemo(() => {
     let result: MarketEvent[] = [];
     if (searchMode === 'global' && activeGlobalQuery) {
@@ -323,9 +325,6 @@ export default function App() {
     const truncated = userTier === 'free' && result.length > FREE_MARKET_LIMIT;
     return { events: truncated ? result.slice(0, FREE_MARKET_LIMIT) : result, truncated };
   }, [searchMode, searchQuery, activeGlobalQuery, globalSearchResults, currentCategoryData.events, marketData, arbSortOrder, userTier]);
-
-  const userTier: UserTier = currentUser?.tier || 'free';
-  const FREE_MARKET_LIMIT = 20;
 
   const isCurrentlyEmpty = (searchMode === 'global' ? isGlobalLoading : (currentCategoryData.events.length === 0 && currentCategoryData.loading));
 
