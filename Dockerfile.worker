@@ -13,7 +13,7 @@ RUN pip install --no-cache-dir .
 COPY src/ src/
 COPY scripts/ scripts/
 
-# Ingestion workers — polls prediction market APIs and publishes to Redis
+# Ingestion workers — polls prediction market APIs, normalizes, publishes to Redis
 ENV WORKER_SOURCES="polymarket,kalshi,predictit,theoddsapi,gemini,coinbase,robinhood,limitless"
 
 CMD ["sh", "-c", "exec python scripts/run_worker.py --sources $WORKER_SOURCES"]
