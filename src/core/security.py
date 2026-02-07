@@ -52,7 +52,7 @@ async def verify_firebase_token(id_token: str) -> dict | None:
     try:
         decoded = await loop.run_in_executor(
             None,
-            lambda: firebase_auth.verify_id_token(id_token, check_revoked=True),
+            lambda: firebase_auth.verify_id_token(id_token, check_revoked=False),
         )
         return decoded
     except firebase_auth.RevokedIdTokenError:
