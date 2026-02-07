@@ -15,6 +15,7 @@ import { SearchTool, SearchMode } from './components/SearchTool.tsx';
 import { Footer } from './components/Footer.tsx';
 import { AuthModal } from './components/AuthModal.tsx';
 import { AdminPortal } from './components/AdminPortal.tsx';
+import { AffiliateDashboard } from './components/AffiliateDashboard.tsx';
 import { FeedbackDrawer } from './components/FeedbackDrawer.tsx';
 import { MarketCategory, MarketEvent, Platform, User } from './types.ts';
 import { fetchRealTimeMarkets, searchMarketsByQuery, refreshSingleMarket } from './services/marketDataService.ts';
@@ -36,7 +37,7 @@ type MarketDataState = Record<MarketCategory, {
 }>;
 
 export type ArbSortOrder = 'asc' | 'desc' | null;
-export type NavView = 'dashboard' | 'alpha' | 'how-it-works' | 'pricing' | 'terms' | 'privacy' | 'api-docs' | 'admin' | 'profile';
+export type NavView = 'dashboard' | 'alpha' | 'how-it-works' | 'pricing' | 'terms' | 'privacy' | 'api-docs' | 'admin' | 'profile' | 'affiliate';
 export type Theme = 'dark' | 'light';
 
 const STORAGE_KEY_ORDER = 'oddsaxiom_v1_stable_order';
@@ -523,6 +524,7 @@ export default function App() {
           {navView === 'privacy' && <PrivacyPolicy />}
           {navView === 'api-docs' && <ApiDocs />}
           {navView === 'profile' && currentUser && <ProfilePage user={currentUser} onUpgrade={() => setNavView('pricing')} />}
+          {navView === 'affiliate' && <AffiliateDashboard onBack={() => setNavView('profile')} />}
           {navView === 'admin' && <AdminPortal onClose={() => setNavView('dashboard')} currentUserEmail={currentUser?.email} />}
           <Footer onNavChange={handleNavChange} />
         </div>

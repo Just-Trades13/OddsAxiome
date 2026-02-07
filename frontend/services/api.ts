@@ -121,3 +121,32 @@ export async function adminDeleteUser(userId: string) {
   }
   return res.json();
 }
+
+// Affiliate endpoints
+export async function registerAffiliate() {
+  return apiPost<{ code: string; commission_rate: number }>('/affiliates/register', {});
+}
+
+export async function getAffiliateStats() {
+  return apiGet<{
+    code: string;
+    commission_rate: number;
+    total_clicks: number;
+    total_conversions: number;
+    total_earned: number;
+    total_paid: number;
+    pending_payout: number;
+  }>('/affiliates/stats', true);
+}
+
+export async function getAffiliateConversions(page = 1, perPage = 50) {
+  const qs = new URLSearchParams({ page: String(page), per_page: String(perPage) });
+  return apiGet<Array<{
+    id: number;
+    user_id: string;
+    amount: number;
+    commission: number;
+    status: string;
+    created_at: string;
+  }>>(`/affiliates/conversions?${qs}`, true);
+}

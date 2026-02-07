@@ -115,6 +115,21 @@ services:
     command: python scripts/run_arbengine.py
     restart: unless-stopped
 
+  scheduler:
+    build:
+      context: .
+      dockerfile: Dockerfile.scheduler
+    env_file: .env
+    environment:
+      - DATABASE_URL=postgresql+asyncpg://oddsaxiom:${POSTGRES_PASSWORD:-oddsaxiom}@postgres:5432/oddsaxiom
+      - REDIS_URL=redis://redis:6379/0
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    restart: unless-stopped
+
 volumes:
   pgdata:
   redisdata:

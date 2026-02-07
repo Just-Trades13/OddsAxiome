@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Activity, Bell, BookOpen, CreditCard, LayoutDashboard, LogIn, ChevronDown, UserCircle, LogIn as LoginIcon, X, Zap, Sun, Moon } from 'lucide-react';
+import { Activity, Bell, BookOpen, CreditCard, LayoutDashboard, LogIn, ChevronDown, UserCircle, LogIn as LoginIcon, X, Zap, Sun, Moon, Share2 } from 'lucide-react';
 import { clsx } from 'clsx';
 import { User } from '../types.ts';
 import { Theme } from '../App.tsx';
@@ -163,13 +163,19 @@ export const Navbar: React.FC<NavbarProps> = ({ currentNav, currentUser, theme, 
                     <p className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest">Account Type</p>
                     <p className="text-xs font-bold text-emerald-600 dark:text-emerald-400 uppercase">{currentUser.isPaid ? 'Premium Quant' : 'Explorer (Free)'}</p>
                  </div>
-                 <button 
+                 <button
                   onClick={() => { onProfileClick(); setShowDropdown(false); }}
                   className="w-full text-left px-4 py-2 text-xs font-bold text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 flex items-center gap-3"
                  >
                     <UserCircle className="w-4 h-4" /> My Profile
                  </button>
-                 <button 
+                 <button
+                  onClick={() => { onNavChange('affiliate' as any); setShowDropdown(false); }}
+                  className="w-full text-left px-4 py-2 text-xs font-bold text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 flex items-center gap-3"
+                 >
+                    <Share2 className="w-4 h-4" /> Affiliate Program
+                 </button>
+                 <button
                   onClick={() => { onLogout(); setShowDropdown(false); }}
                   className="w-full text-left px-4 py-2 text-xs font-bold text-red-500 hover:bg-red-500/5 dark:hover:bg-red-500/10 flex items-center gap-3"
                  >

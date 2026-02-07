@@ -1,0 +1,16 @@
+FROM python:3.12-slim
+
+WORKDIR /app
+
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    build-essential libpq-dev \
+    && rm -rf /var/lib/apt/lists/*
+
+COPY pyproject.toml .
+COPY src/ src/
+COPY scripts/ scripts/
+
+RUN pip install --no-cache-dir .
+
+# Periodic tasks: odds cleanup (6h), stale market detection (24h)
+CMD ["python", "scripts/run_scheduler.py"]
