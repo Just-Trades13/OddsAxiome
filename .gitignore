@@ -18,3 +18,7 @@ firebase-service-account.json
 .ruff_cache/
 .coverage
 htmlcov/
+node_modules/
+frontend/node_modules/
+frontend/dist/
+.DS_Store

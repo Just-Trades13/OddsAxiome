@@ -4,16 +4,16 @@ import { User } from '../types.ts';
 import { clsx } from 'clsx';
 
 // Firebase Imports
-import { auth, db } from '../services/firebase.ts';
-import { 
-  createUserWithEmailAndPassword, 
-  signInWithEmailAndPassword, 
-  updateProfile, 
+import { auth } from '../services/firebase.ts';
+import {
+  createUserWithEmailAndPassword,
+  signInWithEmailAndPassword,
+  updateProfile,
   sendEmailVerification,
   sendPasswordResetEmail,
   reload
 } from 'firebase/auth';
-import { doc, setDoc, getDoc, updateDoc } from 'firebase/firestore';
+import { syncUser, getMe, updateMe } from '../services/api.ts';
 
 const COUNTRY_DATA = [
   { name: "Afghanistan", code: "+93" },
@@ -303,24 +303,24 @@ export const AuthModal: React.FC<AuthModalProps> = ({ onClose, onComplete, initi
     if (authMode === 'signin') {
       try {
         const userCred = await signInWithEmailAndPassword(auth, formData.email, formData.password);
-        const userDoc = await getDoc(doc(db, "users", userCred.user.uid));
-        
-        if (userDoc.exists()) {
-          const userData = userDoc.data() as User;
-          if (userData.registrationStep === 'complete') {
-            onComplete(userData);
-          } else {
-            setStep(userData.registrationStep as any);
-          }
+
+        // Sync with backend
+        await syncUser({ first_name: userCred.user.displayName?.split(' ')[0] || 'User' });
+        const userData = await getMe() as any;
+        const user: User = {
+          id: userData.id || userCred.user.uid,
+          firstName: userData.first_name || userCred.user.displayName || 'User',
+          lastName: userData.last_name,
+          email: userData.email || userCred.user.email || '',
+          isPaid: userData.tier !== 'free',
+          registrationStep: userData.registration_step || 'complete',
+          createdAt: userData.created_at ? new Date(userData.created_at).getTime() : Date.now(),
+        };
+
+        if (user.registrationStep === 'complete') {
+          onComplete(user);
         } else {
-          onComplete({
-            id: userCred.user.uid,
-            firstName: userCred.user.displayName || 'User',
-            email: userCred.user.email || '',
-            isPaid: false,
-            registrationStep: 'complete',
-            createdAt: Date.now()
-          });
+          setStep(user.registrationStep as any);
         }
       } catch (err: any) {
         setError(err.message || "Invalid credentials.");
@@ -333,6 +333,11 @@ export const AuthModal: React.FC<AuthModalProps> = ({ onClose, onComplete, initi
         await updateProfile(userCred.user, { displayName: formData.firstName });
         await sendEmailVerification(userCred.user, actionCodeSettings);
 
+        // Sync new user to backend
+        await syncUser({
+          first_name: formData.firstName,
+        });
+
         const newUser: User = {
           id: userCred.user.uid,
           firstName: formData.firstName,
@@ -342,7 +347,6 @@ export const AuthModal: React.FC<AuthModalProps> = ({ onClose, onComplete, initi
           createdAt: Date.now(),
           ipAddress: ipAddress
         };
-        await setDoc(doc(db, "users", newUser.id), newUser);
         setStep('verifying');
       } catch (err: any) {
         setError(err.message || "Failed to initiate registration.");
@@ -374,17 +378,24 @@ export const AuthModal: React.FC<AuthModalProps> = ({ onClose, onComplete, initi
     setError(null);
 
     try {
-      const updates = {
-        lastName: formData.lastName,
+      await updateMe({
+        last_name: formData.lastName,
         zip: formData.zip,
         phone: formData.phone,
-        countryCode: formData.countryCode,
-        registrationStep: 'complete'
-      };
+        country_code: formData.countryCode,
+        registration_step: 'complete'
+      });
 
-      await updateDoc(doc(db, "users", auth.currentUser.uid), updates);
-      const userDoc = await getDoc(doc(db, "users", auth.currentUser.uid));
-      onComplete(userDoc.data() as User);
+      const userData = await getMe() as any;
+      onComplete({
+        id: userData.id || auth.currentUser.uid,
+        firstName: userData.first_name || auth.currentUser.displayName || 'User',
+        lastName: userData.last_name,
+        email: userData.email || auth.currentUser.email || '',
+        isPaid: userData.tier !== 'free',
+        registrationStep: 'complete',
+        createdAt: userData.created_at ? new Date(userData.created_at).getTime() : Date.now(),
+      });
     } catch (err: any) {
       setError(err.message || "Failed to finalize profile.");
     } finally {

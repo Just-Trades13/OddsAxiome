@@ -23,9 +23,9 @@ import { LoaderCircle, RefreshCw, Database, History, Globe, Search, AlertCircle,
 import { clsx } from 'clsx';
 
 // Firebase Imports
-import { auth, db } from './services/firebase.ts';
+import { auth } from './services/firebase.ts';
 import { onAuthStateChanged, signOut, reload } from 'firebase/auth';
-import { doc, getDoc, updateDoc } from 'firebase/firestore';
+import { syncUser, getMe, updateMe } from './services/api.ts';
 
 type MarketDataState = Record<MarketCategory, {
   events: MarketEvent[];
@@ -96,7 +96,7 @@ export default function App() {
     localStorage.setItem(STORAGE_KEY_THEME, theme);
   }, [theme]);
 
-  // Firebase Auth Listener
+  // Firebase Auth Listener — syncs with backend API
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
       if (firebaseUser) {
@@ -105,25 +105,41 @@ export default function App() {
         } catch (e) {
           console.debug("User session refresh failed or user logged out");
         }
-        
-        const userDoc = await getDoc(doc(db, "users", firebaseUser.uid));
-        if (userDoc.exists()) {
-          const userData = userDoc.data() as User;
-          setCurrentUser(userData);
 
-          if (userData.hideOnboardingTip) {
+        try {
+          // Sync user to backend (creates if not exists)
+          await syncUser({
+            first_name: firebaseUser.displayName?.split(' ')[0] || 'User',
+          });
+
+          // Fetch full user profile from backend
+          const userData = await getMe() as any;
+          const user: User = {
+            id: userData.id || firebaseUser.uid,
+            firstName: userData.first_name || firebaseUser.displayName || 'User',
+            lastName: userData.last_name,
+            email: userData.email || firebaseUser.email || '',
+            isPaid: userData.tier !== 'free',
+            registrationStep: userData.registration_step || 'complete',
+            createdAt: userData.created_at ? new Date(userData.created_at).getTime() : Date.now(),
+            hideOnboardingTip: userData.hide_onboarding_tip,
+          };
+          setCurrentUser(user);
+
+          if (user.hideOnboardingTip) {
             setShowAutoTooltip(false);
             localStorage.setItem(STORAGE_KEY_HIDE_TOOLTIP, 'true');
           }
 
-          if (userData.registrationStep !== 'complete') {
+          if (user.registrationStep !== 'complete') {
             setAuthInitialStep(firebaseUser.emailVerified ? 'complete' : 'verifying');
             setIsAuthModalOpen(true);
           } else if (!firebaseUser.emailVerified) {
             setAuthInitialStep('verifying');
             setIsAuthModalOpen(true);
           }
-        } else {
+        } catch (apiErr) {
+          console.debug("Backend API unavailable, opening auth modal:", apiErr);
           if (!isAuthModalOpen) {
             setAuthInitialStep('lead');
             setIsAuthModalOpen(true);
@@ -309,9 +325,7 @@ export default function App() {
     setShowAutoTooltip(false);
     if (currentUser) {
       try {
-        await updateDoc(doc(db, "users", currentUser.id), {
-          hideOnboardingTip: true
-        });
+        await updateMe({ hide_onboarding_tip: true });
         setCurrentUser({ ...currentUser, hideOnboardingTip: true });
       } catch (err) {
         console.error("Failed to persist tooltip preference", err);

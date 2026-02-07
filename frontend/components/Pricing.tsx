@@ -1,14 +1,31 @@
 
 import React, { useState } from 'react';
-import { Check, Zap, Rocket, Terminal } from 'lucide-react';
+import { Check, Zap, Rocket, Terminal, LoaderCircle } from 'lucide-react';
 import { clsx } from 'clsx';
+import { createCheckout } from '../services/api.ts';
 
 export const Pricing: React.FC = () => {
   const [billingCycle, setBillingCycle] = useState<'monthly' | 'yearly'>('monthly');
+  const [loadingTier, setLoadingTier] = useState<string | null>(null);
 
   const prices = {
     monthly: { starter: 49, pro: 149 },
     yearly: { starter: 39, pro: 119 }
+  };
+
+  const handleCheckout = async (tier: 'starter' | 'pro') => {
+    setLoadingTier(tier);
+    try {
+      const result = await createCheckout(tier, billingCycle);
+      if (result.checkout_url) {
+        window.location.href = result.checkout_url;
+      }
+    } catch (err: any) {
+      console.error("Checkout error:", err.message);
+      alert("Please sign in first to upgrade your plan.");
+    } finally {
+      setLoadingTier(null);
+    }
   };
 
   return (
@@ -17,11 +34,11 @@ export const Pricing: React.FC = () => {
         <div className="text-center space-y-4">
           <h1 className="text-4xl font-black text-white">Upgrade Your Portfolio</h1>
           <p className="text-slate-400">Join 500+ professionals using AI to dominate prediction markets.</p>
-          
+
           {/* Toggle */}
           <div className="flex items-center justify-center gap-4 pt-6">
              <span className={clsx("text-xs font-bold", billingCycle === 'monthly' ? "text-white" : "text-slate-500")}>Monthly</span>
-             <button 
+             <button
                 onClick={() => setBillingCycle(prev => prev === 'monthly' ? 'yearly' : 'monthly')}
                 className="w-12 h-6 bg-slate-800 rounded-full p-1 border border-slate-700 flex items-center transition-all"
              >
@@ -53,7 +70,7 @@ export const Pricing: React.FC = () => {
                 </div>
                 <p className="text-sm text-slate-500">Perfect for retail arbitrage seekers.</p>
              </div>
-             
+
              <div className="flex-1 space-y-4">
                 {[
                   "Real-time Dashboard",
@@ -68,8 +85,12 @@ export const Pricing: React.FC = () => {
                 ))}
              </div>
 
-             <button className="w-full py-4 bg-slate-800 hover:bg-slate-700 text-white rounded-2xl font-bold transition-all border border-slate-700">
-                Get Started
+             <button
+               onClick={() => handleCheckout('starter')}
+               disabled={loadingTier !== null}
+               className="w-full py-4 bg-slate-800 hover:bg-slate-700 text-white rounded-2xl font-bold transition-all border border-slate-700 flex items-center justify-center gap-2"
+             >
+                {loadingTier === 'starter' ? <LoaderCircle className="w-5 h-5 animate-spin" /> : 'Get Started'}
              </button>
           </div>
 
@@ -91,7 +112,7 @@ export const Pricing: React.FC = () => {
                 </div>
                 <p className="text-sm text-slate-400">Our flagship scanning experience.</p>
              </div>
-             
+
              <div className="flex-1 space-y-4">
                 {[
                   "Unlimited Global AI Scans",
@@ -108,8 +129,12 @@ export const Pricing: React.FC = () => {
                 ))}
              </div>
 
-             <button className="w-full py-4 bg-emerald-500 hover:bg-emerald-400 text-slate-950 rounded-2xl font-black transition-all shadow-lg shadow-emerald-500/20">
-                Upgrade Now
+             <button
+               onClick={() => handleCheckout('pro')}
+               disabled={loadingTier !== null}
+               className="w-full py-4 bg-emerald-500 hover:bg-emerald-400 text-slate-950 rounded-2xl font-black transition-all shadow-lg shadow-emerald-500/20 flex items-center justify-center gap-2"
+             >
+                {loadingTier === 'pro' ? <LoaderCircle className="w-5 h-5 animate-spin" /> : 'Upgrade Now'}
              </button>
           </div>
 
@@ -127,7 +152,7 @@ export const Pricing: React.FC = () => {
                 </div>
                 <p className="text-sm text-slate-500">For algorithmic trading teams.</p>
              </div>
-             
+
              <div className="flex-1 space-y-4">
                 {[
                   "Websocket Data Stream",
