@@ -12,9 +12,10 @@ COPY scripts/ scripts/
 COPY alembic/ alembic/
 COPY alembic.ini .
 COPY start.sh .
-
-RUN pip install --no-cache-dir . && chmod +x start.sh
+RUN pip install --no-cache-dir . \
+    && sed -i 's/\r$//' start.sh \
+    && chmod +x start.sh
 
 EXPOSE 8000
 
-CMD ["./start.sh"]
+CMD ["sh", "-c", "python -m alembic upgrade head 2>/dev/null || echo 'Migration skipped' ; exec uvicorn src.api.app:create_app --factory --host 0.0.0.0 --port ${PORT:-8000} --workers 4"]
