@@ -1,6 +1,6 @@
 import uuid
 
-from sqlalchemy import DateTime, Integer, Numeric, SmallInteger, String
+from sqlalchemy import DateTime, ForeignKey, Integer, Numeric, SmallInteger, String
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
@@ -28,7 +28,7 @@ class ArbLeg(Base):
     __tablename__ = "arb_legs"
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
-    opportunity_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), nullable=False, index=True)
+    opportunity_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("arb_opportunities.id"), nullable=False, index=True)
     market_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), nullable=False)
     platform_id: Mapped[int] = mapped_column(Integer, nullable=False)
     outcome_name: Mapped[str] = mapped_column(String(200), nullable=False)
