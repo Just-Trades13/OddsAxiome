@@ -1,5 +1,6 @@
 """Admin-only endpoints."""
 from fastapi import APIRouter, Depends, Query
+from pydantic import BaseModel
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -14,7 +15,13 @@ from src.schemas.user import UserResponse
 router = APIRouter()
 
 
-@router.get("/users", response_model=list[UserResponse])
+class AdminUserUpdate(BaseModel):
+    tier: str | None = None
+    is_admin: bool | None = None
+    is_active: bool | None = None
+
+
+@router.get("/users")
 async def list_users(
     search: str | None = None,
     page: int = Query(1, ge=1),
@@ -22,16 +29,32 @@ async def list_users(
     admin: User = Depends(get_admin_user),
     db: AsyncSession = Depends(get_db),
 ):
-    """List all users (admin only)."""
-    query = select(User).order_by(User.created_at.desc())
+    """List all users (admin only). Returns paginated data + total count."""
+    base_query = select(User)
     if search:
-        query = query.where(
+        base_query = base_query.where(
             User.email.ilike(f"%{search}%") | User.display_name.ilike(f"%{search}%")
         )
+
+    # Total count
+    count_query = select(func.count()).select_from(base_query.subquery())
+    total = (await db.execute(count_query)).scalar() or 0
+
+    # Paginated results
     offset = (page - 1) * per_page
-    query = query.offset(offset).limit(per_page)
+    query = base_query.order_by(User.created_at.desc()).offset(offset).limit(per_page)
     result = await db.execute(query)
-    return [UserResponse.model_validate(u) for u in result.scalars().all()]
+    users = [UserResponse.model_validate(u) for u in result.scalars().all()]
+
+    return {
+        "data": users,
+        "meta": {
+            "page": page,
+            "per_page": per_page,
+            "total": total,
+            "total_pages": (total + per_page - 1) // per_page,
+        },
+    }
 
 
 @router.get("/metrics")
@@ -66,21 +89,42 @@ async def platform_metrics(
 @router.patch("/users/{user_id}", response_model=UserResponse)
 async def update_user(
     user_id: str,
-    tier: str | None = None,
-    is_admin: bool | None = None,
+    body: AdminUserUpdate,
     admin: User = Depends(get_admin_user),
     db: AsyncSession = Depends(get_db),
 ):
-    """Update a user's tier or admin status (admin only)."""
+    """Update a user's tier, admin status, or active flag (admin only)."""
     result = await db.execute(select(User).where(User.id == user_id))
     user = result.scalar_one_or_none()
     if not user:
         from src.core.exceptions import NotFoundError
         raise NotFoundError("User not found")
 
-    if tier is not None:
-        user.tier = tier
-    if is_admin is not None:
-        user.is_admin = is_admin
+    if body.tier is not None:
+        user.tier = body.tier
+    if body.is_admin is not None:
+        user.is_admin = body.is_admin
+    if body.is_active is not None:
+        user.is_active = body.is_active
 
+    await db.commit()
+    await db.refresh(user)
     return UserResponse.model_validate(user)
+
+
+@router.delete("/users/{user_id}")
+async def delete_user(
+    user_id: str,
+    admin: User = Depends(get_admin_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Deactivate a user (admin only). Sets is_active=False."""
+    result = await db.execute(select(User).where(User.id == user_id))
+    user = result.scalar_one_or_none()
+    if not user:
+        from src.core.exceptions import NotFoundError
+        raise NotFoundError("User not found")
+
+    user.is_active = False
+    await db.commit()
+    return {"detail": "User deactivated", "user_id": user_id}

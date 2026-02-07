@@ -93,3 +93,31 @@ export async function createCheckout(tierSlug: string, billingCycle: 'monthly' |
 export async function getSubscriptionStatus() {
   return apiGet('/subscriptions/status', true);
 }
+
+// Admin endpoints
+export async function adminGetUsers(params?: { search?: string; page?: number; per_page?: number }) {
+  const qs = new URLSearchParams();
+  if (params?.search) qs.set('search', params.search);
+  if (params?.page) qs.set('page', String(params.page));
+  if (params?.per_page) qs.set('per_page', String(params.per_page));
+  return apiGet<any>(`/admin/users?${qs}`, true);
+}
+
+export async function adminGetMetrics() {
+  return apiGet<{ total_users: number; active_subscriptions: number; active_markets: number; total_affiliates: number }>('/admin/metrics', true);
+}
+
+export async function adminUpdateUser(userId: string, data: { tier?: string; is_admin?: boolean; is_active?: boolean }) {
+  return apiPatch<any>(`/admin/users/${userId}`, data);
+}
+
+export async function adminDeleteUser(userId: string) {
+  const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+  Object.assign(headers, await getAuthHeaders());
+  const res = await fetch(`${BASE_URL}/admin/users/${userId}`, { method: 'DELETE', headers });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({ detail: res.statusText }));
+    throw new Error(err.detail || `API Error ${res.status}`);
+  }
+  return res.json();
+}

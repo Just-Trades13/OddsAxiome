@@ -1,4 +1,4 @@
-"""Seed the subscription_tiers table with free, pro, and premium tiers."""
+"""Seed the subscription_tiers table with free, explorer, and pro tiers."""
 import asyncio
 
 from sqlalchemy import select
@@ -17,22 +17,22 @@ TIERS = [
         "max_watchlist": 5,
     },
     {
-        "slug": "pro",
-        "name": "Pro",
-        "price_monthly": 29.99,
-        "price_yearly": 299.99,
-        "stripe_price_id_monthly": settings.stripe_price_id_pro_monthly or None,
-        "stripe_price_id_yearly": settings.stripe_price_id_pro_yearly or None,
+        "slug": "explorer",
+        "name": "Explorer",
+        "price_monthly": 49,
+        "price_yearly": 39 * 12,
+        "stripe_price_id_monthly": settings.stripe_price_id_explorer_monthly or None,
+        "stripe_price_id_yearly": settings.stripe_price_id_explorer_yearly or None,
         "features": {"market_search": True, "basic_odds": True, "arb_alerts": True, "odds_history": True, "api_access": False},
         "max_watchlist": 50,
     },
     {
-        "slug": "premium",
-        "name": "Premium",
-        "price_monthly": 79.99,
-        "price_yearly": 799.99,
-        "stripe_price_id_monthly": settings.stripe_price_id_premium_monthly or None,
-        "stripe_price_id_yearly": settings.stripe_price_id_premium_yearly or None,
+        "slug": "pro",
+        "name": "Arbitrage Pro",
+        "price_monthly": 149,
+        "price_yearly": 119 * 12,
+        "stripe_price_id_monthly": settings.stripe_price_id_pro_monthly or None,
+        "stripe_price_id_yearly": settings.stripe_price_id_pro_yearly or None,
         "features": {"market_search": True, "basic_odds": True, "arb_alerts": True, "odds_history": True, "arb_history": True, "api_access": True},
         "max_watchlist": -1,  # unlimited
     },
