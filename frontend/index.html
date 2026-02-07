@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>OddsAxiom - Smart Odds Comparison & Prediction Market Arbitrage</title>
+    <meta name="description" content="Real-time prediction market arbitrage and odds comparison dashboard. Powered by Gemini AI to identify positive EV opportunities across Polymarket, Kalshi, and more." />
+    <link rel="canonical" href="https://oddsaxiom.com/" />
+    
+    <!-- Open Graph / Facebook -->
+    <meta property="og:type" content="website" />
+    <meta property="og:url" content="https://oddsaxiom.com/" />
+    <meta property="og:title" content="OddsAxiom - AI-Powered Prediction Market Intelligence" />
+    <meta property="og:description" content="Compare odds across Polymarket, Kalshi, and PredictIt. Find 0-risk arbitrage and high-yield prediction market opportunities." />
+    <meta property="og:image" content="https://oddsaxiom.com/og-image.png" />
+
+    <!-- Twitter -->
+    <meta property="twitter:card" content="summary_large_image" />
+    <meta property="twitter:url" content="https://oddsaxiom.com/" />
+    <meta property="twitter:title" content="OddsAxiom - Smart Odds Comparison" />
+    <meta property="twitter:description" content="Real-time sports and politics prediction market arbitrage powered by Gemini AI." />
+    <meta property="twitter:image" content="https://oddsaxiom.com/og-image.png" />
+
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+      tailwind.config = {
+        darkMode: 'class',
+        theme: {
+          extend: {
+            colors: {
+              slate: {
+                850: '#151e2e',
+                950: '#020617',
+              },
+              emerald: {
+                450: '#10b981', 
+              }
+            },
+            fontFamily: {
+              mono: ['ui-monospace', 'SFMono-Regular', 'Menlo', 'Monaco', 'Consolas', "Liberation Mono", "Courier New", 'monospace'],
+            }
+          }
+        }
+      }
+    </script>
+    <style>
+      ::-webkit-scrollbar {
+        width: 8px;
+        height: 8px;
+      }
+      ::-webkit-scrollbar-track {
+        background: transparent; 
+      }
+      .dark ::-webkit-scrollbar-track {
+        background: #0f172a; 
+      }
+      ::-webkit-scrollbar-thumb {
+        background: #cbd5e1; 
+        border-radius: 4px;
+      }
+      .dark ::-webkit-scrollbar-thumb {
+        background: #334155; 
+      }
+      ::-webkit-scrollbar-thumb:hover {
+        background: #94a3b8; 
+      }
+      .dark ::-webkit-scrollbar-thumb:hover {
+        background: #475569; 
+      }
+      .scrollbar-hide::-webkit-scrollbar {
+          display: none;
+      }
+      .scrollbar-hide {
+          -ms-overflow-style: none;
+          scrollbar-width: none;
+      }
+      body {
+        transition: background-color 0.3s ease, color 0.3s ease;
+      }
+    </style>
+    <script type="importmap">
+{
+  "imports": {
+    "react": "https://esm.sh/react@19.2.3",
+    "react-dom": "https://esm.sh/react-dom@19.2.3",
+    "react-dom/client": "https://esm.sh/react-dom@19.2.3/client",
+    "@google/genai": "https://esm.sh/@google/genai@1.33.0",
+    "lucide-react": "https://esm.sh/lucide-react@0.561.0",
+    "clsx": "https://esm.sh/clsx@2.1.1",
+    "react-dom/": "https://esm.sh/react-dom@^19.2.3/",
+    "react/": "https://esm.sh/react@^19.2.3/",
+    "firebase/app": "https://www.gstatic.com/firebasejs/11.2.0/firebase-app.js",
+    "firebase/auth": "https://www.gstatic.com/firebasejs/11.2.0/firebase-auth.js",
+    "firebase/firestore": "https://www.gstatic.com/firebasejs/11.2.0/firebase-firestore.js",
+    "firebase/": "https://esm.sh/firebase@^12.8.0/"
+  }
+}
+</script>
+    <script type="module" src="./index.tsx"></script>
+  <link rel="stylesheet" href="/index.css">
+</head>
+  <body class="bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-200 antialiased overflow-hidden">
+    <div id="root" class="h-screen w-screen flex flex-col"></div>
+  <script type="module" src="/index.tsx"></script>
+</body>
+</html>

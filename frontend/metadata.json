@@ -1,0 +1,5 @@
+{
+  "name": "OddsAxiom",
+  "description": "A real-time sports betting arbitrage and odds comparison dashboard powered by Gemini AI. Identify positive EV bets and arbitrage opportunities across multiple bookmakers.",
+  "requestFramePermissions": []
+}
