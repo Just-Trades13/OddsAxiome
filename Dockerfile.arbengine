@@ -12,7 +12,4 @@ COPY scripts/ scripts/
 
 RUN pip install --no-cache-dir .
 
-# Default: run all workers. Override WORKER_SOURCES env var to limit.
-ENV WORKER_SOURCES="polymarket,kalshi,predictit,theoddsapi,gemini,coinbase,robinhood,limitless"
-
-CMD ["sh", "-c", "exec python scripts/run_worker.py --sources $WORKER_SOURCES"]
+CMD ["python", "scripts/run_arbengine.py"]
