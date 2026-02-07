@@ -49,29 +49,37 @@ async def get_all_live_odds(
     per_page: int = 50,
     category: str | None = None,
 ) -> dict:
-    """Get all live odds from Redis, grouped by market."""
-    markets: dict[str, dict] = {}
+    """Get all live odds from Redis, grouped by market. Uses pipeline for speed."""
+    # Step 1: Collect all matching keys with SCAN
+    keys: list[str] = []
+    async for key in redis.scan_iter(match="odds:live:*", count=500):
+        keys.append(key if isinstance(key, str) else key.decode())
 
-    # Scan all live odds keys
-    async for key in redis.scan_iter(match="odds:live:*"):
-        data = await redis.hgetall(key)
+    if not keys:
+        return {"data": [], "meta": {"page": page, "per_page": per_page, "total": 0, "total_pages": 0}}
+
+    # Step 2: Pipeline all HGETALL calls (single round-trip)
+    pipe = redis.pipeline()
+    for key in keys:
+        pipe.hgetall(key)
+    all_data = await pipe.execute()
+
+    # Step 3: Group by market title
+    markets: dict[str, dict] = {}
+    for key, data in zip(keys, all_data):
         if not data:
             continue
 
-        # Extract market title as grouping key
         title = data.get("market_title", "")
         if not title:
             continue
 
         mkt_category = data.get("category", "")
-
-        # Filter by category if specified
         if category and mkt_category.lower() != category.lower():
             continue
 
         # Extract market_id from Redis key: odds:live:{platform}:{market_id}
-        key_str = key if isinstance(key, str) else key.decode()
-        parts = key_str.split(":", 3)
+        parts = key.split(":", 3)
         market_id = parts[3] if len(parts) > 3 else ""
 
         if title not in markets:
