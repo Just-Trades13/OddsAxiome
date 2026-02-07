@@ -1,8 +1,8 @@
 
 import React, { useEffect, useState } from 'react';
-import { MarketEvent, Platform } from '../types.ts';
+import { MarketEvent, Platform, UserTier } from '../types.ts';
 import { clsx } from 'clsx';
-import { Sparkles, TriangleAlert, Info, Globe, Clock, CheckCircle2, RefreshCw, Calculator, HelpCircle } from 'lucide-react';
+import { Sparkles, TriangleAlert, Info, Globe, Clock, CheckCircle2, RefreshCw, Calculator, HelpCircle, Lock } from 'lucide-react';
 
 interface OddsRowProps {
   event: MarketEvent;
@@ -10,9 +10,11 @@ interface OddsRowProps {
   onRefreshSingleEvent: (event: MarketEvent) => void;
   platformOrder: Platform[];
   onOpenCalculator: (event: MarketEvent) => void;
+  userTier: UserTier;
 }
 
-export const OddsRow: React.FC<OddsRowProps> = ({ event, onAnalyze, onRefreshSingleEvent, platformOrder, onOpenCalculator }) => {
+export const OddsRow: React.FC<OddsRowProps> = ({ event, onAnalyze, onRefreshSingleEvent, platformOrder, onOpenCalculator, userTier }) => {
+  const isFree = userTier === 'free';
   const isArb = !!event.arbPercent && event.arbPercent > 0;
   const isMock = event.id.startsWith('fallback');
   const lines = event.lines || [];
@@ -115,8 +117,11 @@ export const OddsRow: React.FC<OddsRowProps> = ({ event, onAnalyze, onRefreshSin
           </div>
           {isArb && !isMock && (
             <div className="relative group/arb">
-              <span className="text-[10px] font-bold bg-emerald-450 text-slate-950 px-2 py-1 rounded uppercase tracking-wider shrink-0 cursor-help">
-                {event.arbPercent?.toFixed(2)}% ARB
+              <span className={clsx(
+                "text-[10px] font-bold bg-emerald-450 text-slate-950 px-2 py-1 rounded uppercase tracking-wider shrink-0",
+                isFree ? "blur-[5px] select-none" : "cursor-help"
+              )}>
+                {isFree ? '?.??% ARB' : `${event.arbPercent?.toFixed(2)}% ARB`}
               </span>
               {/* Arb Tooltip */}
               <div className="absolute bottom-full right-0 mb-2 w-64 bg-slate-800 border border-slate-700 p-3 rounded-xl shadow-2xl z-[60] invisible group-hover/arb:visible opacity-0 group-hover/arb:opacity-100 transition-all duration-200 pointer-events-none">
@@ -135,14 +140,14 @@ export const OddsRow: React.FC<OddsRowProps> = ({ event, onAnalyze, onRefreshSin
       </div>
 
       {/* Yield Column */}
-      <div className="p-2 flex flex-col items-center justify-center border-l border-slate-800/50 bg-slate-950/10">
+      <div className={clsx("p-2 flex flex-col items-center justify-center border-l border-slate-800/50 bg-slate-950/10", isFree && isArb && "blur-[5px] select-none")}>
         {isArb ? (
           <>
             <div className={clsx(
               "text-sm font-black font-mono",
               isGreatYield ? "text-fuchsia-400 drop-shadow-[0_0_10px_rgba(232,121,249,0.4)]" : "text-fuchsia-500/80"
             )}>
-              {apy.toFixed(1)}%
+              {isFree ? '?.?%' : `${apy.toFixed(1)}%`}
             </div>
             <div className="text-[8px] text-slate-500 uppercase font-bold flex items-center gap-1 mt-0.5">
               {event.daysToExpiry}D
@@ -155,13 +160,19 @@ export const OddsRow: React.FC<OddsRowProps> = ({ event, onAnalyze, onRefreshSin
 
       {/* Analysis Column */}
       <div className="p-2 flex items-center justify-center border-l border-slate-800/50 bg-slate-900/40">
-        <button 
-          onClick={() => onAnalyze(event)} 
-          className="p-1.5 rounded-lg bg-indigo-500/10 text-indigo-400 hover:bg-indigo-500 hover:text-white transition-all border border-indigo-500/20 group/ai"
-          title="Analyze"
-        >
-          <Sparkles className="w-3.5 h-3.5 group-hover/ai:scale-110 transition-transform" />
-        </button>
+        {isFree ? (
+          <div className="p-1.5 rounded-lg bg-slate-800/40 text-slate-600 border border-slate-700/30 cursor-not-allowed" title="Upgrade to unlock AI Audit">
+            <Lock className="w-3.5 h-3.5" />
+          </div>
+        ) : (
+          <button
+            onClick={() => onAnalyze(event)}
+            className="p-1.5 rounded-lg bg-indigo-500/10 text-indigo-400 hover:bg-indigo-500 hover:text-white transition-all border border-indigo-500/20 group/ai"
+            title="Analyze"
+          >
+            <Sparkles className="w-3.5 h-3.5 group-hover/ai:scale-110 transition-transform" />
+          </button>
+        )}
       </div>
 
       {/* Calculator Column */}

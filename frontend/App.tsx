@@ -17,7 +17,7 @@ import { AuthModal } from './components/AuthModal.tsx';
 import { AdminPortal } from './components/AdminPortal.tsx';
 import { AffiliateDashboard } from './components/AffiliateDashboard.tsx';
 import { FeedbackDrawer } from './components/FeedbackDrawer.tsx';
-import { MarketCategory, MarketEvent, Platform, User } from './types.ts';
+import { MarketCategory, MarketEvent, Platform, User, UserTier } from './types.ts';
 import { fetchRealTimeMarkets, searchMarketsByQuery, refreshSingleMarket } from './services/marketDataService.ts';
 import { PLATFORMS as INITIAL_PLATFORMS } from './constants.ts';
 import { LoaderCircle, RefreshCw, Database, History, Globe, Search, AlertCircle, WifiOff, Terminal, Sparkles, MousePointer2, Menu, Check, ArrowDown, ArrowUp, ArrowUpDown, MessageSquare, Zap } from 'lucide-react';
@@ -133,12 +133,14 @@ export default function App() {
 
           // Fetch full user profile from backend
           const userData = await getMe() as any;
+          const tier = (['free', 'explorer', 'pro'].includes(userData.tier) ? userData.tier : 'free') as UserTier;
           const user: User = {
             id: userData.id || firebaseUser.uid,
             firstName: userData.first_name || firebaseUser.displayName || 'User',
             lastName: userData.last_name,
             email: userData.email || firebaseUser.email || '',
-            isPaid: userData.tier !== 'free',
+            isPaid: tier !== 'free',
+            tier,
             registrationStep: userData.registration_step || 'complete',
             createdAt: userData.created_at ? new Date(userData.created_at).getTime() : Date.now(),
             hideOnboardingTip: userData.hide_onboarding_tip,
@@ -289,7 +291,7 @@ export default function App() {
 
   const currentCategoryData = marketData[activeSport] as MarketDataState[MarketCategory];
   
-  const displayedEvents = useMemo(() => {
+  const { events: displayedEvents, truncated: isEventsTruncated } = useMemo(() => {
     let result: MarketEvent[] = [];
     if (searchMode === 'global' && activeGlobalQuery) {
       result = [...globalSearchResults];
@@ -316,8 +318,14 @@ export default function App() {
         return arbSortOrder === 'desc' ? arbB - arbA : arbA - arbB;
       });
     }
-    return result;
-  }, [searchMode, searchQuery, activeGlobalQuery, globalSearchResults, currentCategoryData.events, marketData, arbSortOrder]);
+
+    // Limit for free/unauth users
+    const truncated = userTier === 'free' && result.length > FREE_MARKET_LIMIT;
+    return { events: truncated ? result.slice(0, FREE_MARKET_LIMIT) : result, truncated };
+  }, [searchMode, searchQuery, activeGlobalQuery, globalSearchResults, currentCategoryData.events, marketData, arbSortOrder, userTier]);
+
+  const userTier: UserTier = currentUser?.tier || 'free';
+  const FREE_MARKET_LIMIT = 20;
 
   const isCurrentlyEmpty = (searchMode === 'global' ? isGlobalLoading : (currentCategoryData.events.length === 0 && currentCategoryData.loading));
 
@@ -513,20 +521,41 @@ export default function App() {
                       <p className="text-slate-900 dark:text-white font-bold text-lg">Connecting to Quant Nodes...</p>
                     </div>
                   ) : navView === 'alpha' ? (
-                    <AlphaDashboard 
-                      events={displayedEvents} 
+                    <AlphaDashboard
+                      events={displayedEvents}
                       orderedPlatforms={orderedPlatforms}
                       onRefreshSingleEvent={handleRefreshSingleEvent}
-                      onAnalyze={(e) => { setSelectedEvent(e); setIsAnalyzeOpen(true); }} 
+                      onAnalyze={(e) => { setSelectedEvent(e); setIsAnalyzeOpen(true); }}
+                      userTier={userTier}
+                      onUpgrade={() => setNavView('pricing')}
                     />
                   ) : (
-                    <Dashboard 
-                      events={displayedEvents} orderedPlatforms={orderedPlatforms}
-                      arbSortOrder={arbSortOrder} onToggleArbSort={toggleArbSort}
-                      onReorderPlatforms={handleReorderPlatforms} onRefreshSingleEvent={handleRefreshSingleEvent}
-                      onAnalyze={(e) => { setSelectedEvent(e); setIsAnalyzeOpen(true); }} 
-                      onOpenCalculator={(e) => { setSelectedEvent(e); setIsCalculatorOpen(true); }}
-                    />
+                    <>
+                      <Dashboard
+                        events={displayedEvents} orderedPlatforms={orderedPlatforms}
+                        arbSortOrder={arbSortOrder} onToggleArbSort={toggleArbSort}
+                        onReorderPlatforms={handleReorderPlatforms} onRefreshSingleEvent={handleRefreshSingleEvent}
+                        onAnalyze={(e) => { setSelectedEvent(e); setIsAnalyzeOpen(true); }}
+                        onOpenCalculator={(e) => { setSelectedEvent(e); setIsCalculatorOpen(true); }}
+                        userTier={userTier}
+                      />
+                      {isEventsTruncated && (
+                        <div className="mt-6 p-6 bg-gradient-to-r from-indigo-500/10 to-fuchsia-500/10 border border-indigo-500/20 rounded-3xl flex flex-col sm:flex-row items-center justify-between gap-4">
+                          <div className="flex items-center gap-3">
+                            <Zap className="w-5 h-5 text-fuchsia-400 shrink-0" />
+                            <p className="text-sm font-bold text-slate-200">
+                              Showing {FREE_MARKET_LIMIT} of {currentCategoryData.events.length}+ markets. <span className="text-fuchsia-400">Upgrade</span> to unlock all.
+                            </p>
+                          </div>
+                          <button
+                            onClick={() => setNavView('pricing')}
+                            className="px-6 py-2.5 bg-fuchsia-600 hover:bg-fuchsia-500 text-white rounded-xl text-xs font-black uppercase tracking-widest transition-all shadow-lg shadow-fuchsia-600/20 shrink-0"
+                          >
+                            View Plans
+                          </button>
+                        </div>
+                      )}
+                    </>
                   )}
                 </div>
               </div>

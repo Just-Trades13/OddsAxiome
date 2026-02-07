@@ -1,8 +1,8 @@
 
 import React, { useMemo } from 'react';
-import { MarketEvent, Platform } from '../types.ts';
+import { MarketEvent, Platform, UserTier } from '../types.ts';
 import { clsx } from 'clsx';
-import { Zap, TrendingUp, Info, RefreshCw, Sparkles, HelpCircle, ArrowUpRight, ShieldAlert, Coins } from 'lucide-react';
+import { Zap, TrendingUp, Info, RefreshCw, Sparkles, HelpCircle, ArrowUpRight, ShieldAlert, Coins, Lock } from 'lucide-react';
 
 interface AlphaOpportunity extends MarketEvent {
   edge: number;
@@ -16,14 +16,19 @@ interface AlphaDashboardProps {
   orderedPlatforms: Platform[];
   onRefreshSingleEvent: (event: MarketEvent) => void;
   onAnalyze: (event: MarketEvent) => void;
+  userTier: UserTier;
+  onUpgrade?: () => void;
 }
 
-export const AlphaDashboard: React.FC<AlphaDashboardProps> = ({ 
-  events, 
-  orderedPlatforms, 
+export const AlphaDashboard: React.FC<AlphaDashboardProps> = ({
+  events,
+  orderedPlatforms,
   onRefreshSingleEvent,
-  onAnalyze
+  onAnalyze,
+  userTier,
+  onUpgrade
 }) => {
+  const isFree = userTier === 'free';
   const alphaOpportunities = useMemo(() => {
     return events.map(event => {
       const lines = event.lines || [];
@@ -57,6 +62,53 @@ export const AlphaDashboard: React.FC<AlphaDashboardProps> = ({
     }).filter((o): o is AlphaOpportunity => o !== null && o.edge > 1.5)
       .sort((a,b) => b.edge - a.edge);
   }, [events]);
+
+  if (isFree) {
+    return (
+      <div className="flex flex-col gap-6 animate-in fade-in duration-500 relative">
+        {/* Blurred preview */}
+        <div className="blur-[6px] pointer-events-none select-none">
+          <div className="grid md:grid-cols-3 gap-4">
+            <div className="bg-fuchsia-500/10 border border-fuchsia-500/20 rounded-3xl p-5 flex items-center gap-4">
+              <div className="w-12 h-12 bg-fuchsia-500/20 rounded-2xl flex items-center justify-center"><Zap className="w-6 h-6 text-fuchsia-400" /></div>
+              <div><p className="text-[10px] font-black text-fuchsia-500 uppercase tracking-widest">Bias Opportunities</p><p className="text-xl font-black text-white">? Detected</p></div>
+            </div>
+            <div className="bg-indigo-500/10 border border-indigo-500/20 rounded-3xl p-5 flex items-center gap-4">
+              <div className="w-12 h-12 bg-indigo-500/20 rounded-2xl flex items-center justify-center"><TrendingUp className="w-6 h-6 text-indigo-400" /></div>
+              <div><p className="text-[10px] font-black text-indigo-500 uppercase tracking-widest">Avg Edge</p><p className="text-xl font-black text-white">?.?%</p></div>
+            </div>
+            <div className="bg-slate-800/40 border border-slate-700 rounded-3xl p-5 flex items-center gap-4">
+              <div className="w-12 h-12 bg-slate-700/50 rounded-2xl flex items-center justify-center"><Coins className="w-6 h-6 text-slate-400" /></div>
+              <div><p className="text-[10px] font-black text-slate-500 uppercase tracking-widest">HFT Sync Status</p><p className="text-xl font-black text-emerald-400">Live</p></div>
+            </div>
+          </div>
+          <div className="mt-6 space-y-4">
+            {[1, 2, 3].map(i => (
+              <div key={i} className="bg-slate-850 border border-white/5 rounded-[2rem] p-6 h-48" />
+            ))}
+          </div>
+        </div>
+
+        {/* Overlay CTA */}
+        <div className="absolute inset-0 flex items-center justify-center z-10">
+          <div className="bg-slate-900/95 border-2 border-fuchsia-500/30 rounded-[2.5rem] p-10 text-center max-w-md shadow-[0_0_80px_rgba(168,85,247,0.15)]">
+            <div className="w-16 h-16 bg-fuchsia-500/20 rounded-2xl flex items-center justify-center mx-auto mb-6">
+              <Lock className="w-8 h-8 text-fuchsia-400" />
+            </div>
+            <h3 className="text-2xl font-black text-white mb-3">Alpha View is a Pro Feature</h3>
+            <p className="text-sm text-slate-400 leading-relaxed mb-6">
+              Unlock bias detection, institutional gap analysis, and real-time edge calculations with an Explorer or Pro subscription.
+            </p>
+            <button
+              onClick={onUpgrade}
+              className="px-8 py-3.5 bg-fuchsia-600 hover:bg-fuchsia-500 text-white rounded-2xl text-sm font-black uppercase tracking-widest transition-all shadow-xl shadow-fuchsia-600/20">
+              View Plans
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="flex flex-col gap-6 animate-in fade-in duration-500">

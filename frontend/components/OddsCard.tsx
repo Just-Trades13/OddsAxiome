@@ -1,8 +1,8 @@
 
 import React, { useState } from 'react';
-import { MarketEvent, Platform } from '../types.ts';
+import { MarketEvent, Platform, UserTier } from '../types.ts';
 import { clsx } from 'clsx';
-import { Sparkles, Calendar, Clock, TrendingUp, CheckCircle2, RefreshCw, Calculator, HelpCircle } from 'lucide-react';
+import { Sparkles, Calendar, Clock, TrendingUp, CheckCircle2, RefreshCw, Calculator, HelpCircle, Lock } from 'lucide-react';
 
 interface OddsCardProps {
   event: MarketEvent;
@@ -10,9 +10,11 @@ interface OddsCardProps {
   onRefreshSingleEvent: (event: MarketEvent) => void;
   onOpenCalculator: (event: MarketEvent) => void;
   platformOrder: Platform[];
+  userTier: UserTier;
 }
 
-export const OddsCard: React.FC<OddsCardProps> = ({ event, onAnalyze, onRefreshSingleEvent, onOpenCalculator, platformOrder }) => {
+export const OddsCard: React.FC<OddsCardProps> = ({ event, onAnalyze, onRefreshSingleEvent, onOpenCalculator, platformOrder, userTier }) => {
+  const isFree = userTier === 'free';
   const isArb = !!event.arbPercent && event.arbPercent > 0;
   const lines = event.lines || [];
   const apy = event.apy || 0;
@@ -84,12 +86,15 @@ export const OddsCard: React.FC<OddsCardProps> = ({ event, onAnalyze, onRefreshS
         <div className="flex flex-col items-end gap-2 shrink-0">
           {isArb && (
             <div className="relative">
-              <button 
-                onClick={(e) => toggleTooltip('arb', e)}
-                className="bg-emerald-500 text-slate-950 px-2.5 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-tighter shadow-xl shadow-emerald-500/20 flex items-center gap-1.5 active:scale-95 transition-transform"
+              <button
+                onClick={(e) => !isFree && toggleTooltip('arb', e)}
+                className={clsx(
+                  "bg-emerald-500 text-slate-950 px-2.5 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-tighter shadow-xl shadow-emerald-500/20 flex items-center gap-1.5 transition-transform",
+                  isFree ? "blur-[5px] select-none cursor-default" : "active:scale-95"
+                )}
               >
-                {event.arbPercent?.toFixed(2)}%
-                <HelpCircle className="w-3 h-3 opacity-60" />
+                {isFree ? '?.??%' : `${event.arbPercent?.toFixed(2)}%`}
+                {!isFree && <HelpCircle className="w-3 h-3 opacity-60" />}
               </button>
               
               {/* Arb Tooltip */}
@@ -123,16 +128,16 @@ export const OddsCard: React.FC<OddsCardProps> = ({ event, onAnalyze, onRefreshS
         <div className="flex items-center gap-4">
            {/* Yield Section with Tooltip */}
            <div className="relative">
-             <button 
-               onClick={(e) => toggleTooltip('yield', e)}
-               className="flex flex-col items-start active:opacity-60 transition-opacity"
+             <button
+               onClick={(e) => !isFree && toggleTooltip('yield', e)}
+               className={clsx("flex flex-col items-start transition-opacity", isFree ? "blur-[4px] select-none cursor-default" : "active:opacity-60")}
              >
                <span className="text-[9px] text-slate-500 font-black uppercase tracking-widest leading-none mb-1 flex items-center gap-1">
                  Yield <HelpCircle className="w-2.5 h-2.5 opacity-40" />
                </span>
                <div className="flex items-center gap-1 text-xs font-black text-slate-200">
                   <TrendingUp className={clsx("w-3 h-3", apy > 10 ? "text-fuchsia-400" : "text-amber-400")} />
-                  {apy.toFixed(1)}%
+                  {isFree ? '?.?%' : `${apy.toFixed(1)}%`}
                </div>
              </button>
              
@@ -253,13 +258,20 @@ export const OddsCard: React.FC<OddsCardProps> = ({ event, onAnalyze, onRefreshS
         })}
       </div>
 
-      <button 
-        onClick={(e) => { e.stopPropagation(); onAnalyze(event); }}
-        className="w-full py-4 bg-indigo-600 hover:bg-indigo-500 text-white rounded-[1.2rem] text-[12px] font-black tracking-widest transition-all flex items-center justify-center gap-2 shadow-2xl shadow-indigo-600/20 group-hover:scale-[1.02] active:scale-95 border border-indigo-400/20"
-      >
-        <Sparkles className="w-4 h-4" />
-        AI AUDIT
-      </button>
+      {isFree ? (
+        <div className="w-full py-4 bg-slate-800/60 text-slate-500 rounded-[1.2rem] text-[12px] font-black tracking-widest flex items-center justify-center gap-2 border border-slate-700/30 cursor-not-allowed">
+          <Lock className="w-4 h-4" />
+          UPGRADE TO AUDIT
+        </div>
+      ) : (
+        <button
+          onClick={(e) => { e.stopPropagation(); onAnalyze(event); }}
+          className="w-full py-4 bg-indigo-600 hover:bg-indigo-500 text-white rounded-[1.2rem] text-[12px] font-black tracking-widest transition-all flex items-center justify-center gap-2 shadow-2xl shadow-indigo-600/20 group-hover:scale-[1.02] active:scale-95 border border-indigo-400/20"
+        >
+          <Sparkles className="w-4 h-4" />
+          AI AUDIT
+        </button>
+      )}
     </div>
   );
 };

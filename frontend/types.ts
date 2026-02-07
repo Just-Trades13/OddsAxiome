@@ -91,6 +91,8 @@ export interface AnalysisResult {
   sources?: { title: string; uri: string }[];
 }
 
+export type UserTier = 'free' | 'explorer' | 'pro';
+
 export interface User {
   id: string;
   firstName: string;
@@ -101,6 +103,7 @@ export interface User {
   countryCode?: string;
   ipAddress?: string;
   isPaid: boolean;
+  tier: UserTier;
   registrationStep: 'lead' | 'verifying' | 'complete';
   createdAt: number;
   hideOnboardingTip?: boolean;

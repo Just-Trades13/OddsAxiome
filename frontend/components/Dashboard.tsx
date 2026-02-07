@@ -1,6 +1,6 @@
 
 import React, { useState } from 'react';
-import { MarketEvent, Platform } from '../types.ts';
+import { MarketEvent, Platform, UserTier } from '../types.ts';
 import { OddsRow } from './OddsRow.tsx';
 import { OddsCard } from './OddsCard.tsx';
 import { GripVertical, ArrowUpDown, ArrowUp, ArrowDown, Info, ShieldCheck, HelpCircle, TrendingUp, Sparkles } from 'lucide-react';
@@ -16,17 +16,19 @@ interface DashboardProps {
   onRefreshSingleEvent: (event: MarketEvent) => void;
   onAnalyze: (event: MarketEvent) => void;
   onOpenCalculator: (event: MarketEvent) => void;
+  userTier: UserTier;
 }
 
-export const Dashboard: React.FC<DashboardProps> = ({ 
-  events, 
-  orderedPlatforms, 
+export const Dashboard: React.FC<DashboardProps> = ({
+  events,
+  orderedPlatforms,
   arbSortOrder,
   onToggleArbSort,
-  onReorderPlatforms, 
+  onReorderPlatforms,
   onRefreshSingleEvent,
   onAnalyze,
-  onOpenCalculator
+  onOpenCalculator,
+  userTier
 }) => {
   const [draggedPlatform, setDraggedPlatform] = useState<Platform | null>(null);
 
@@ -57,13 +59,14 @@ export const Dashboard: React.FC<DashboardProps> = ({
       {/* Mobile View: Card List */}
       <div className="md:hidden space-y-4 pr-1">
         {events.map((event) => (
-          <OddsCard 
-            key={event.id} 
-            event={event} 
-            onAnalyze={onAnalyze} 
+          <OddsCard
+            key={event.id}
+            event={event}
+            onAnalyze={onAnalyze}
             onRefreshSingleEvent={onRefreshSingleEvent}
             onOpenCalculator={onOpenCalculator}
-            platformOrder={orderedPlatforms} 
+            platformOrder={orderedPlatforms}
+            userTier={userTier}
           />
         ))}
         {events.length === 0 && (
@@ -164,13 +167,14 @@ export const Dashboard: React.FC<DashboardProps> = ({
 
           <div className="divide-y divide-slate-800/30">
             {events.map((event) => (
-              <OddsRow 
-                key={event.id} 
-                event={event} 
-                onAnalyze={onAnalyze} 
+              <OddsRow
+                key={event.id}
+                event={event}
+                onAnalyze={onAnalyze}
                 onRefreshSingleEvent={onRefreshSingleEvent}
                 platformOrder={orderedPlatforms}
                 onOpenCalculator={onOpenCalculator}
+                userTier={userTier}
               />
             ))}
             {events.length === 0 && (
