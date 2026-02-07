@@ -1,4 +1,6 @@
 """Kalshi ingestion worker — REST API with official SDK."""
+import asyncio
+
 import httpx
 import structlog
 
@@ -156,6 +158,7 @@ class KalshiWorker(BaseIngestionWorker):
                 cursor = data.get("cursor")
                 if not cursor or not events:
                     break
+                await asyncio.sleep(0.5)  # Rate limit: avoid 429s on pagination
 
         except httpx.HTTPError as e:
             self.logger.error("Kalshi API error", error=str(e))

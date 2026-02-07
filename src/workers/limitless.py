@@ -1,4 +1,6 @@
 """Limitless Exchange prediction markets worker."""
+import json
+
 import httpx
 import structlog
 
@@ -44,7 +46,11 @@ class LimitlessWorker(BaseIngestionWorker):
             if "html" in content_type:
                 self.logger.debug("Limitless returned HTML (auth required), skipping")
                 return []
-            markets = resp.json()
+            try:
+                markets = resp.json()
+            except json.JSONDecodeError:
+                self.logger.debug("Limitless returned non-JSON response, skipping")
+                return []
 
             if not isinstance(markets, list):
                 markets = markets.get("markets", markets.get("data", []))
