@@ -78,10 +78,12 @@ class KalshiWorker(BaseIngestionWorker):
         results: list[RawOddsData] = []
 
         try:
-            # Fetch active events
+            # Fetch active events (with_nested_markets includes markets inline)
             cursor = None
-            while True:
-                params = {"status": "open", "limit": 100}
+            pages = 0
+            max_pages = 5
+            while pages < max_pages:
+                params = {"status": "open", "limit": 100, "with_nested_markets": "true"}
                 if cursor:
                     params["cursor"] = cursor
 
@@ -98,8 +100,7 @@ class KalshiWorker(BaseIngestionWorker):
 
                     markets = event.get("markets", [])
                     if not markets:
-                        # Need to fetch markets for this event separately
-                        markets = await self._fetch_event_markets(event_ticker)
+                        continue  # Skip events without inline markets
 
                     for market in markets:
                         ticker = market.get("ticker", "")
@@ -156,6 +157,7 @@ class KalshiWorker(BaseIngestionWorker):
                             )
 
                 cursor = data.get("cursor")
+                pages += 1
                 if not cursor or not events:
                     break
                 await asyncio.sleep(0.5)  # Rate limit: avoid 429s on pagination
