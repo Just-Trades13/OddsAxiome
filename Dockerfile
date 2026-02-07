@@ -32,4 +32,4 @@ COPY --from=frontend-build /frontend/dist /app/static
 
 EXPOSE 8000
 
-CMD ["sh", "-c", "python -m alembic upgrade head 2>/dev/null || echo 'Migration skipped' ; exec uvicorn src.api.app:create_app --factory --host 0.0.0.0 --port ${PORT:-8000} --workers 4"]
+CMD ["sh", "-c", "echo 'Running migrations...' && python -m alembic upgrade head && echo 'Migrations complete.' || echo 'Migration failed — check DATABASE_URL_SYNC' ; exec uvicorn src.api.app:create_app --factory --host 0.0.0.0 --port ${PORT:-8000} --workers 4"]
