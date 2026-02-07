@@ -16,10 +16,13 @@ class Settings(BaseSettings):
     # Stripe
     stripe_secret_key: str = ""
     stripe_webhook_secret: str = ""
+    stripe_price_id_explorer_monthly: str = ""
+    stripe_price_id_explorer_yearly: str = ""
     stripe_price_id_pro_monthly: str = ""
     stripe_price_id_pro_yearly: str = ""
-    stripe_price_id_premium_monthly: str = ""
-    stripe_price_id_premium_yearly: str = ""
+
+    # Frontend URL for Stripe redirects
+    frontend_url: str = "https://oddsaxiom.com"
 
     # HubSpot
     hubspot_access_token: str = ""

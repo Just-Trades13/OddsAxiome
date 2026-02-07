@@ -5,7 +5,7 @@ from pydantic import BaseModel
 
 
 class CheckoutRequest(BaseModel):
-    tier_slug: str  # 'pro' or 'premium'
+    tier_slug: str  # 'explorer' or 'pro'
     interval: str = "monthly"  # 'monthly' or 'yearly'
 
 

@@ -14,10 +14,10 @@ stripe.api_key = settings.stripe_secret_key
 
 # Map tier slugs to Stripe price IDs
 PRICE_MAP = {
+    ("explorer", "monthly"): settings.stripe_price_id_explorer_monthly,
+    ("explorer", "yearly"): settings.stripe_price_id_explorer_yearly,
     ("pro", "monthly"): settings.stripe_price_id_pro_monthly,
     ("pro", "yearly"): settings.stripe_price_id_pro_yearly,
-    ("premium", "monthly"): settings.stripe_price_id_premium_monthly,
-    ("premium", "yearly"): settings.stripe_price_id_premium_yearly,
 }
 
 
@@ -46,8 +46,8 @@ async def create_checkout_session(
         customer=customer_id,
         mode="subscription",
         line_items=[{"price": price_id, "quantity": 1}],
-        success_url=f"https://oddsaxiom.com/membership?success=true&session_id={{CHECKOUT_SESSION_ID}}",
-        cancel_url="https://oddsaxiom.com/membership?canceled=true",
+        success_url=f"{settings.frontend_url}/membership?success=true&session_id={{CHECKOUT_SESSION_ID}}",
+        cancel_url=f"{settings.frontend_url}/membership?canceled=true",
         metadata={"user_id": str(user.id), "tier_slug": tier_slug},
     )
 
@@ -61,7 +61,7 @@ async def create_portal_session(db: AsyncSession, user: User) -> dict:
 
     session = stripe.billing_portal.Session.create(
         customer=user.subscription.stripe_customer_id,
-        return_url="https://oddsaxiom.com/membership",
+        return_url=f"{settings.frontend_url}/membership",
     )
 
     return {"portal_url": session.url}

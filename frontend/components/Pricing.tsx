@@ -13,7 +13,7 @@ export const Pricing: React.FC = () => {
     yearly: { starter: 39, pro: 119 }
   };
 
-  const handleCheckout = async (tier: 'starter' | 'pro') => {
+  const handleCheckout = async (tier: 'explorer' | 'pro') => {
     setLoadingTier(tier);
     try {
       const result = await createCheckout(tier, billingCycle);
@@ -86,11 +86,11 @@ export const Pricing: React.FC = () => {
              </div>
 
              <button
-               onClick={() => handleCheckout('starter')}
+               onClick={() => handleCheckout('explorer')}
                disabled={loadingTier !== null}
                className="w-full py-4 bg-slate-800 hover:bg-slate-700 text-white rounded-2xl font-bold transition-all border border-slate-700 flex items-center justify-center gap-2"
              >
-                {loadingTier === 'starter' ? <LoaderCircle className="w-5 h-5 animate-spin" /> : 'Get Started'}
+                {loadingTier === 'explorer' ? <LoaderCircle className="w-5 h-5 animate-spin" /> : 'Get Started'}
              </button>
           </div>
 

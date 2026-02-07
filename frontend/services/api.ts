@@ -83,11 +83,10 @@ export async function updateMe(data: Record<string, any>) {
 }
 
 // Stripe checkout
-export async function createCheckout(priceId: string, billingCycle: 'monthly' | 'yearly') {
+export async function createCheckout(tierSlug: string, billingCycle: 'monthly' | 'yearly') {
   return apiPost<{ checkout_url: string }>('/subscriptions/checkout', {
-    price_id: priceId,
-    success_url: window.location.origin + '?checkout=success',
-    cancel_url: window.location.origin + '/pricing',
+    tier_slug: tierSlug,
+    interval: billingCycle,
   });
 }
 
