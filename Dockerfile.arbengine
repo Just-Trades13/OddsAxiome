@@ -12,4 +12,5 @@ COPY scripts/ scripts/
 
 RUN pip install --no-cache-dir .
 
+# Arbitrage detection engine — consumes odds from Redis, finds arb opportunities
 CMD ["python", "scripts/run_arbengine.py"]
