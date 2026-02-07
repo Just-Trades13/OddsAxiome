@@ -1,6 +1,7 @@
 import { auth } from './firebase.ts';
 
-const BASE_URL = (process.env.VITE_BACKEND_URL || 'http://localhost:8000') + '/api/v1';
+const _backend = process.env.VITE_BACKEND_URL || '';
+const BASE_URL = _backend + '/api/v1';
 
 async function getAuthHeaders(): Promise<Record<string, string>> {
   const user = auth.currentUser;

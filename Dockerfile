@@ -1,3 +1,16 @@
+### Stage 1: Build React frontend ###
+FROM node:20-slim AS frontend-build
+
+WORKDIR /frontend
+COPY frontend/package.json frontend/package-lock.json* ./
+RUN npm install
+COPY frontend/ .
+
+# Backend URL is same origin since we serve from the same container
+ENV VITE_BACKEND_URL=""
+RUN npm run build
+
+### Stage 2: Python API ###
 FROM python:3.12-slim
 
 WORKDIR /app
@@ -11,10 +24,11 @@ COPY src/ src/
 COPY scripts/ scripts/
 COPY alembic/ alembic/
 COPY alembic.ini .
-COPY start.sh .
-RUN pip install --no-cache-dir . \
-    && sed -i 's/\r$//' start.sh \
-    && chmod +x start.sh
+
+RUN pip install --no-cache-dir .
+
+# Copy built frontend into /app/static
+COPY --from=frontend-build /frontend/dist /app/static
 
 EXPOSE 8000
 
