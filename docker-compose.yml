@@ -1,0 +1,120 @@
+version: "3.9"
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: oddsaxiom
+      POSTGRES_USER: oddsaxiom
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-oddsaxiom}
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U oddsaxiom"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+
+  redis:
+    image: redis:7-alpine
+    command: redis-server --maxmemory 256mb --maxmemory-policy allkeys-lru
+    ports:
+      - "6379:6379"
+    volumes:
+      - redisdata:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile.api
+    ports:
+      - "8000:8000"
+    env_file: .env
+    environment:
+      - DATABASE_URL=postgresql+asyncpg://oddsaxiom:${POSTGRES_PASSWORD:-oddsaxiom}@postgres:5432/oddsaxiom
+      - DATABASE_URL_SYNC=postgresql://oddsaxiom:${POSTGRES_PASSWORD:-oddsaxiom}@postgres:5432/oddsaxiom
+      - REDIS_URL=redis://redis:6379/0
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    command: uvicorn src.api.app:create_app --factory --host 0.0.0.0 --port 8000 --reload
+
+  worker-websocket:
+    build:
+      context: .
+      dockerfile: Dockerfile.worker
+    env_file: .env
+    environment:
+      - REDIS_URL=redis://redis:6379/0
+      - DATABASE_URL=postgresql+asyncpg://oddsaxiom:${POSTGRES_PASSWORD:-oddsaxiom}@postgres:5432/oddsaxiom
+      - WORKER_SOURCES=polymarket,limitless
+    depends_on:
+      redis:
+        condition: service_healthy
+      postgres:
+        condition: service_healthy
+    command: python scripts/run_worker.py --sources polymarket,limitless
+    restart: unless-stopped
+
+  worker-authenticated:
+    build:
+      context: .
+      dockerfile: Dockerfile.worker
+    env_file: .env
+    environment:
+      - REDIS_URL=redis://redis:6379/0
+      - DATABASE_URL=postgresql+asyncpg://oddsaxiom:${POSTGRES_PASSWORD:-oddsaxiom}@postgres:5432/oddsaxiom
+      - WORKER_SOURCES=kalshi,gemini
+    depends_on:
+      redis:
+        condition: service_healthy
+      postgres:
+        condition: service_healthy
+    command: python scripts/run_worker.py --sources kalshi,gemini
+    restart: unless-stopped
+
+  worker-rest-polling:
+    build:
+      context: .
+      dockerfile: Dockerfile.worker
+    env_file: .env
+    environment:
+      - REDIS_URL=redis://redis:6379/0
+      - DATABASE_URL=postgresql+asyncpg://oddsaxiom:${POSTGRES_PASSWORD:-oddsaxiom}@postgres:5432/oddsaxiom
+      - WORKER_SOURCES=predictit,theoddsapi,coinbase,robinhood
+    depends_on:
+      redis:
+        condition: service_healthy
+      postgres:
+        condition: service_healthy
+    command: python scripts/run_worker.py --sources predictit,theoddsapi,coinbase,robinhood
+    restart: unless-stopped
+
+  arbengine:
+    build:
+      context: .
+      dockerfile: Dockerfile.worker
+    env_file: .env
+    environment:
+      - REDIS_URL=redis://redis:6379/0
+      - DATABASE_URL=postgresql+asyncpg://oddsaxiom:${POSTGRES_PASSWORD:-oddsaxiom}@postgres:5432/oddsaxiom
+    depends_on:
+      redis:
+        condition: service_healthy
+      postgres:
+        condition: service_healthy
+    command: python scripts/run_arbengine.py
+    restart: unless-stopped
+
+volumes:
+  pgdata:
+  redisdata:
