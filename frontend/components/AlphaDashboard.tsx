@@ -214,7 +214,7 @@ export const AlphaDashboard: React.FC<AlphaDashboardProps> = ({
          <div className="space-y-1">
             <p className="text-xs font-black text-white uppercase tracking-widest">Quant Strategy Note</p>
             <p className="text-[11px] text-slate-400 leading-relaxed font-medium">
-              Bias trading exploits the time-delay between information hitting "Sharp" high-volume exchanges and "Retail" low-volume platforms. This view uses <strong>Polymarket</strong> as the sharp anchor for fair-value anchoring. High-edge opportunities (>5%) often settle within minutes as arbitrageurs bridge the gap.
+              Bias trading exploits the time-delay between information hitting "Sharp" high-volume exchanges and "Retail" low-volume platforms. This view uses <strong>Polymarket</strong> as the sharp anchor for fair-value anchoring. High-edge opportunities (&gt;5%) often settle within minutes as arbitrageurs bridge the gap.
             </p>
          </div>
       </div>
