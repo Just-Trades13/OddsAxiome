@@ -135,7 +135,7 @@ class ArbEngine:
         if self._recluster_counter >= self._RECLUSTER_INTERVAL:
             self._recluster_counter = 0
             all_titles = list(self._odds_buffer.keys())
-            new_map = cluster_titles(all_titles)
+            new_map = cluster_titles(all_titles, self._market_categories)
             if new_map != self._title_map:
                 # Merge buffers for newly-matched titles
                 merged_count = 0
