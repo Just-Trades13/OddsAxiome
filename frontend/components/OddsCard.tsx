@@ -231,7 +231,7 @@ export const OddsCard: React.FC<OddsCardProps> = ({ event, onAnalyze, onRefreshS
                     )}
                   >
                     <span className="text-[9px] opacity-40">YES</span>
-                    {(line.yesPrice.price * 100).toFixed(0)}¢
+                    {(line.yesPrice.price * 100).toFixed(1)}¢
                   </a>
                   <a 
                     href={line.url} 
@@ -245,7 +245,7 @@ export const OddsCard: React.FC<OddsCardProps> = ({ event, onAnalyze, onRefreshS
                     )}
                   >
                     <span className="text-[9px] opacity-40">NO</span>
-                    {(line.noPrice.price * 100).toFixed(0)}¢
+                    {(line.noPrice.price * 100).toFixed(1)}¢
                   </a>
                 </div>
               ) : (

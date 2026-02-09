@@ -58,8 +58,8 @@ function transformBackendOdds(raw: any[], category: MarketCategory): MarketEvent
       const yesOutcome = outcomes.find((o: any) => o.outcome_name === 'Yes' || o.outcome_index === 0);
       const noOutcome = outcomes.find((o: any) => o.outcome_name === 'No' || o.outcome_index === 1);
 
-      const yesPrice = yesOutcome ? yesOutcome.price : 0.5;
-      const noPrice = noOutcome ? noOutcome.price : (yesOutcome ? 1 - yesOutcome.price : 0.5);
+      const yesPrice = yesOutcome ? (yesOutcome.implied_prob ?? yesOutcome.price) : 0.5;
+      const noPrice = noOutcome ? (noOutcome.implied_prob ?? noOutcome.price) : (yesOutcome ? 1 - (yesOutcome.implied_prob ?? yesOutcome.price) : 0.5);
 
       return {
         platform,

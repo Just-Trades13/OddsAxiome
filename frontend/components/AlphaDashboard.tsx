@@ -239,7 +239,7 @@ export const AlphaDashboard: React.FC<AlphaDashboardProps> = ({
                         "text-xs font-mono font-bold",
                         isBias ? "text-fuchsia-400" : "text-slate-400"
                       )}>
-                        {line ? `${(line.yesPrice.price * 100).toFixed(0)}¢` : '--'}
+                        {line ? `${(line.yesPrice.price * 100).toFixed(1)}¢` : '--'}
                       </span>
                    </div>
                  );
