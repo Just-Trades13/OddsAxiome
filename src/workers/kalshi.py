@@ -9,6 +9,7 @@ The flat /markets endpoint is dominated by 3000+ sports parlays that bury
 the political/economics markets we need for cross-platform matching.
 """
 import asyncio
+from collections import Counter
 
 import httpx
 import structlog
@@ -156,12 +157,14 @@ class KalshiWorker(BaseIngestionWorker):
 
                     event_count += 1
 
-                    # Detect multi-candidate events where all markets share
-                    # the same generic title (e.g. "Who will win the next
-                    # presidential election?").  In that case, build a unique
-                    # title per candidate using yes_sub_title.
-                    titles = {m.get("title", "") for m in active_markets}
-                    shared_title = len(titles) == 1 and len(active_markets) > 1
+                    # Count how many markets share each title.  When
+                    # multiple candidates share a generic title (e.g.
+                    # "Who will win the next presidential election?"),
+                    # we append the candidate name from yes_sub_title
+                    # to make each market title unique & matchable.
+                    title_counts = Counter(
+                        m.get("title", "") for m in active_markets
+                    )
 
                     for market in active_markets:
                         ticker = market.get("ticker", "")
@@ -174,10 +177,9 @@ class KalshiWorker(BaseIngestionWorker):
                         if yes_price is None:
                             continue
 
-                        # Build a unique, matchable title
-                        if shared_title and yes_sub:
-                            # "Who will win X?" + sub "JD Vance" →
-                            # "Will JD Vance win X?" (matches Polymarket style)
+                        # Build a unique, matchable title when this title
+                        # is shared by multiple markets in the event
+                        if title_counts[raw_title] > 1 and yes_sub:
                             title = _build_candidate_title(raw_title, yes_sub)
                         else:
                             title = raw_title
