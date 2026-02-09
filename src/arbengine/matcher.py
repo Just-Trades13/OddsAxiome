@@ -22,14 +22,10 @@ logger = structlog.get_logger()
 
 CROSS_PLATFORM_THRESHOLD = 82
 
-# Patterns to strip before comparison
+# Patterns to strip before comparison (keep date suffixes — they differentiate
+# time-variant markets like "by March 31" vs "by December 31" on the same platform)
 _STRIP_PATTERNS = [
     r"\?$",
-    r"\s+by\s+\d{1,2}/\d{1,2}[/\d]*.*$",
-    r"\s+by\s+(january|february|march|april|may|june|july|august|september|october|november|december)\s+\d{1,2}.*$",
-    r"\s+by\s+end\s+of\s+\d{4}.*$",
-    r"\s+by\s+(march|june|september|december)\s+\d{1,2},?\s*\d{4}.*$",
-    r"\s+before\s+.{3,30}$",
     r"\s*\(.*?\)\s*",
     r"\s*\[.*?\]\s*",
 ]
