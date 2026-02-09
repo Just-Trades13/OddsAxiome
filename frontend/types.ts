@@ -107,4 +107,6 @@ export interface User {
   registrationStep: 'lead' | 'verifying' | 'complete';
   createdAt: number;
   hideOnboardingTip?: boolean;
+  market_alerts?: boolean;
+  live_data_stream?: boolean;
 }

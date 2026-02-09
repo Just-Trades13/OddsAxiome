@@ -17,6 +17,7 @@ interface NavbarProps {
 
 export const Navbar: React.FC<NavbarProps> = ({ currentNav, currentUser, theme, onNavChange, onLoginClick, onLogout, onProfileClick, onToggleTheme }) => {
   const [showDropdown, setShowDropdown] = useState(false);
+  const [showNotifications, setShowNotifications] = useState(false);
   const [showMobileNav, setShowMobileNav] = useState(false);
 
   const handleMobileNavClick = (nav: any) => {
@@ -139,10 +140,26 @@ export const Navbar: React.FC<NavbarProps> = ({ currentNav, currentUser, theme, 
           {theme === 'dark' ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />}
         </button>
 
-        <button className="hidden sm:block p-2 text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl transition-colors relative group">
-          <Bell className="w-5 h-5" />
-          <span className="absolute top-2.5 right-2.5 w-2 h-2 bg-emerald-500 rounded-full border-2 border-white dark:border-slate-900"></span>
-        </button>
+        <div className="hidden sm:block relative">
+          <button
+            onClick={() => setShowNotifications(!showNotifications)}
+            className="p-2 text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl transition-colors relative group"
+          >
+            <Bell className="w-5 h-5" />
+            <span className="absolute top-2.5 right-2.5 w-2 h-2 bg-emerald-500 rounded-full border-2 border-white dark:border-slate-900"></span>
+          </button>
+          {showNotifications && (
+            <div className="absolute right-0 mt-2 w-72 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-2xl shadow-xl z-50 overflow-hidden">
+              <div className="px-4 py-3 border-b border-slate-100 dark:border-slate-800">
+                <h4 className="text-xs font-black text-slate-600 dark:text-slate-400 uppercase tracking-widest">Notifications</h4>
+              </div>
+              <div className="px-4 py-8 text-center">
+                <Bell className="w-8 h-8 text-slate-300 dark:text-slate-700 mx-auto mb-2" />
+                <p className="text-xs text-slate-400 font-medium">No new notifications</p>
+              </div>
+            </div>
+          )}
+        </div>
 
         {currentUser ? (
           <div className="relative">

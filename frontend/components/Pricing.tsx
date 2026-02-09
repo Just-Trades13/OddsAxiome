@@ -168,7 +168,10 @@ export const Pricing: React.FC = () => {
                 ))}
              </div>
 
-             <button className="w-full py-4 bg-indigo-600 hover:bg-indigo-500 text-white rounded-2xl font-bold transition-all border border-indigo-500/40 shadow-lg shadow-indigo-600/10">
+             <button
+               onClick={() => window.location.href = 'mailto:support@oddsaxiom.com?subject=Quant%20API%20Inquiry'}
+               className="w-full py-4 bg-indigo-600 hover:bg-indigo-500 text-white rounded-2xl font-bold transition-all border border-indigo-500/40 shadow-lg shadow-indigo-600/10"
+             >
                 Contact Sales
              </button>
           </div>

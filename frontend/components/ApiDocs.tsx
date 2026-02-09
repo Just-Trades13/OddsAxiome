@@ -1,8 +1,22 @@
 
-import React from 'react';
-import { Terminal, Code, Cpu, Zap, Copy } from 'lucide-react';
+import React, { useState } from 'react';
+import { Terminal, Code, Cpu, Zap, Copy, Check } from 'lucide-react';
 
-export const ApiDocs: React.FC = () => {
+interface ApiDocsProps {
+  onNavChange?: (view: string) => void;
+}
+
+export const ApiDocs: React.FC<ApiDocsProps> = ({ onNavChange }) => {
+  const [copied, setCopied] = useState(false);
+
+  const wsUrl = 'wss://api.oddsaxiom.com/v1/stream?key=YOUR_API_KEY';
+
+  const handleCopy = () => {
+    navigator.clipboard.writeText(wsUrl);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  };
+
   return (
     <div className="bg-slate-900 w-full">
       <div className="max-w-5xl mx-auto px-6 py-20 space-y-12 pb-32">
@@ -26,15 +40,18 @@ export const ApiDocs: React.FC = () => {
                 Real-time Websocket
               </h2>
               <p className="text-slate-400">
-                The OddsAxiom Websocket provides sub-100ms updates for every price move across Polymarket and Kalshi. 
+                The OddsAxiom Websocket provides sub-100ms updates for every price move across Polymarket and Kalshi.
               </p>
               <div className="bg-slate-950 border border-slate-800 rounded-2xl overflow-hidden">
                 <div className="px-4 py-2 bg-slate-800 border-b border-slate-700 flex justify-between items-center">
                   <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Connect</span>
-                  <button className="text-slate-500 hover:text-white transition-colors"><Copy className="w-3 h-3" /></button>
+                  <button onClick={handleCopy} className="text-slate-500 hover:text-white transition-colors flex items-center gap-1">
+                    {copied ? <Check className="w-3 h-3 text-emerald-400" /> : <Copy className="w-3 h-3" />}
+                    {copied && <span className="text-[9px] text-emerald-400 font-bold">Copied</span>}
+                  </button>
                 </div>
                 <pre className="p-4 text-xs font-mono text-emerald-400 overflow-x-auto">
-                  wss://api.oddsaxiom.com/v1/stream?key=YOUR_API_KEY
+                  {wsUrl}
                 </pre>
               </div>
             </section>
@@ -47,7 +64,7 @@ export const ApiDocs: React.FC = () => {
               <p className="text-slate-400">
                 Use our REST API to fetch historical yields and current market snapshots via the OddsAxiom gateway.
               </p>
-              
+
               <div className="space-y-6">
                 <div className="space-y-2">
                   <div className="flex items-center gap-3">
@@ -117,7 +134,10 @@ export const ApiDocs: React.FC = () => {
               <p className="text-xs text-slate-500 leading-relaxed">
                 Our Quant API supports dedicated node endpoints for low-latency HFT bots.
               </p>
-              <button className="w-full py-2 bg-emerald-500 text-slate-950 text-xs font-bold rounded-lg hover:bg-emerald-400 transition-colors">
+              <button
+                onClick={() => onNavChange?.('pricing')}
+                className="w-full py-2 bg-emerald-500 text-slate-950 text-xs font-bold rounded-lg hover:bg-emerald-400 transition-colors"
+              >
                 Upgrade to Quant
               </button>
             </div>

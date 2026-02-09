@@ -94,6 +94,10 @@ export async function getSubscriptionStatus() {
   return apiGet('/subscriptions/status', true);
 }
 
+export async function openBillingPortal() {
+  return apiPost<{ portal_url: string }>('/subscriptions/portal', {});
+}
+
 // Admin endpoints
 export async function adminGetUsers(params?: { search?: string; page?: number; per_page?: number }) {
   const qs = new URLSearchParams();

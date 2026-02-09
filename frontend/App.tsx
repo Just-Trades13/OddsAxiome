@@ -568,8 +568,8 @@ export default function App() {
           {navView === 'pricing' && <Pricing />}
           {navView === 'terms' && <TermsOfService />}
           {navView === 'privacy' && <PrivacyPolicy />}
-          {navView === 'api-docs' && <ApiDocs />}
-          {navView === 'profile' && currentUser && <ProfilePage user={currentUser} onUpgrade={() => setNavView('pricing')} />}
+          {navView === 'api-docs' && <ApiDocs onNavChange={handleNavChange} />}
+          {navView === 'profile' && currentUser && <ProfilePage user={currentUser} onUpgrade={() => setNavView('pricing')} onUserUpdated={async () => { const u = await import('./services/api.ts').then(m => m.getMe()); setCurrentUser(u as any); }} onLogout={handleLogout} />}
           {navView === 'affiliate' && <AffiliateDashboard onBack={() => setNavView('profile')} />}
           {navView === 'admin' && <AdminPortal onClose={() => setNavView('dashboard')} currentUserEmail={currentUser?.email} />}
           <Footer onNavChange={handleNavChange} />
