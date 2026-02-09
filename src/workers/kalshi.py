@@ -265,16 +265,27 @@ def _build_candidate_title(generic_title: str, candidate: str) -> str:
     Falls back to "generic_title: candidate" if parsing fails.
     """
     t = generic_title.strip()
+    low = t.lower()
 
     # "Who will win X?" → "Will {candidate} win X?"
-    if t.lower().startswith("who will win "):
+    if low.startswith("who will win "):
         rest = t[len("who will win "):]
         return f"Will {candidate} win {rest}"
 
     # "Who will be X?" → "Will {candidate} be X?"
-    if t.lower().startswith("who will be "):
+    if low.startswith("who will be "):
         rest = t[len("who will be "):]
         return f"Will {candidate} be {rest}"
+
+    # "Who will run for X?" → "Will {candidate} run for X?"
+    if low.startswith("who will run for "):
+        rest = t[len("who will run for "):]
+        return f"Will {candidate} run for {rest}"
+
+    # "Who will run in X?" → "Will {candidate} run in X?"
+    if low.startswith("who will run in "):
+        rest = t[len("who will run in "):]
+        return f"Will {candidate} run in {rest}"
 
     # Fallback: "Title — Candidate"
     return f"{t} — {candidate}"

@@ -1,9 +1,9 @@
 """Cross-platform market title matching using fuzzy comparison.
 
 Markets on different platforms describe the same event with very different wording:
-  - Polymarket: "Will Claudia López win the 2026 Colombian presidential election?"
-  - PredictIt:  "Who will win the 2026 Colombian presidential election?"
-  - Kalshi:     "Will Democratic win the Presidency in 2028?"
+  - Polymarket: "Will Gavin Newsom win the 2028 Democratic presidential nomination?"
+  - PredictIt:  "Will Gavin Newsom win the 2028 Democratic presidential nomination?"
+  - Kalshi:     "Will Gavin Newsom win the next presidential election?"
 
 Key insight: Markets from the SAME platform with similar titles are usually
 different markets (e.g. different candidates for the same election).
@@ -12,6 +12,10 @@ Markets from DIFFERENT platforms with similar titles are likely the same event.
 So we use platform-aware matching:
   - Cross-platform: fuzzy threshold 82  (catch different wording)
   - Same-platform:  exact match only    (don't merge different candidates)
+
+Semantic gates prevent matching fundamentally different questions:
+  - "Will X run for president?" ≠ "Will X win the presidency?"
+  - "Which party will win?" ≠ "Will [person] win?"
 """
 import re
 
@@ -32,6 +36,28 @@ _STRIP_PATTERNS = [
 
 _YEAR_RE = re.compile(r"\b(20\d{2})\b")
 
+# --- Semantic conflict detection ---
+# If title A contains a term from one group and title B contains a term
+# from another group in the same pair, they are asking different questions.
+_VERB_CONFLICTS = [
+    # "run for / announce / file" vs "win / become / elected"
+    (
+        {"run for", "run in", "announce", "file for", "enter the race",
+         "seek the nomination", "declare candidacy"},
+        {"win", "become", "elected", "prevail", "capture"},
+    ),
+]
+
+# Titles containing these phrases are aggregate/party-level markets
+# and must NOT match individual candidate markets.
+_AGGREGATE_PHRASES = {
+    "which party",
+    "what party",
+    "party win",
+    "party control",
+    "party to win",
+}
+
 
 def _normalize_title(title: str) -> str:
     """Lower-case + strip noise from a market title."""
@@ -44,6 +70,29 @@ def _normalize_title(title: str) -> str:
 
 def _years_in(text: str) -> set[str]:
     return set(_YEAR_RE.findall(text))
+
+
+def _has_semantic_conflict(norm_a: str, norm_b: str) -> bool:
+    """Return True if the two normalised titles ask fundamentally
+    different questions (e.g. 'run for' vs 'win')."""
+
+    # Verb conflict gate
+    for group_a, group_b in _VERB_CONFLICTS:
+        a_in_a = any(phrase in norm_a for phrase in group_a)
+        a_in_b = any(phrase in norm_a for phrase in group_b)
+        b_in_a = any(phrase in norm_b for phrase in group_a)
+        b_in_b = any(phrase in norm_b for phrase in group_b)
+        # One title has a "run for" verb, the other has a "win" verb
+        if (a_in_a and b_in_b) or (a_in_b and b_in_a):
+            return True
+
+    # Aggregate vs specific gate
+    a_agg = any(phrase in norm_a for phrase in _AGGREGATE_PHRASES)
+    b_agg = any(phrase in norm_b for phrase in _AGGREGATE_PHRASES)
+    if a_agg != b_agg:
+        return True
+
+    return False
 
 
 def cluster_titles(
@@ -99,7 +148,10 @@ def cluster_titles(
                     matched = True
                     break
             else:
-                # Cross-platform → use fuzzy matching
+                # Cross-platform → use fuzzy matching + semantic gates
+                if _has_semantic_conflict(norm, canon_norm):
+                    continue
+
                 score = fuzz.token_sort_ratio(norm, canon_norm)
                 if score >= CROSS_PLATFORM_THRESHOLD:
                     canonical_map[title] = canon_title
