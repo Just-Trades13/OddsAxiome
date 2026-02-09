@@ -19,6 +19,7 @@ async def _get_or_build_canonical_map(
     redis: aioredis.Redis,
     titles: list[str],
     categories: dict[str, str],
+    title_platforms: dict[str, str],
 ) -> dict[str, str]:
     """Load canonical map from Redis cache, or build + cache it."""
     raw = await redis.get(_CANONICAL_MAP_KEY)
@@ -28,8 +29,8 @@ async def _get_or_build_canonical_map(
         except Exception:
             pass
 
-    # Build from scratch
-    cmap = cluster_titles(titles, categories)
+    # Build from scratch (platform-aware: same-platform=exact, cross-platform=fuzzy)
+    cmap = cluster_titles(titles, categories, platforms=title_platforms)
 
     # Cache for next call
     try:
@@ -113,6 +114,7 @@ async def get_all_live_odds(
     # Step 3: Collect raw entries, filtering by category
     raw_entries: list[tuple[str, str, dict]] = []  # (redis_key, title, data)
     title_categories: dict[str, str] = {}
+    title_platforms: dict[str, str] = {}  # {title: platform_slug} for first occurrence
 
     for key, data in zip(keys, all_data):
         if not data:
@@ -126,13 +128,16 @@ async def get_all_live_odds(
         raw_entries.append((key, title, data))
         if title not in title_categories:
             title_categories[title] = mkt_category
+            title_platforms[title] = data.get("platform", "")
 
     if not raw_entries:
         return {"data": [], "meta": {"page": page, "per_page": per_page, "total": 0, "total_pages": 0}}
 
-    # Step 4: Build or load canonical title map (fuzzy clustering)
+    # Step 4: Build or load canonical title map (platform-aware fuzzy clustering)
     all_titles = list(title_categories.keys())
-    canonical_map = await _get_or_build_canonical_map(redis, all_titles, title_categories)
+    canonical_map = await _get_or_build_canonical_map(
+        redis, all_titles, title_categories, title_platforms
+    )
 
     # Step 5: Group by canonical title
     markets: dict[str, dict] = {}
