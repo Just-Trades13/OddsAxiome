@@ -172,7 +172,7 @@ async def get_all_live_odds(
             })
             i += 1
 
-        markets[canonical]["platforms"].append({
+        entry = {
             "platform_slug": platform,
             "market_title": title,  # original per-platform title for reference
             "outcomes": outcomes,
@@ -180,7 +180,23 @@ async def get_all_live_odds(
             "volume_24h": float(data["volume_24h"]) if data.get("volume_24h") else None,
             "liquidity_usd": float(data["liquidity_usd"]) if data.get("liquidity_usd") else None,
             "updated_at": data.get("updated_at"),
-        })
+        }
+
+        # Deduplicate: if this platform already has an entry in the group,
+        # keep the one with the most recent updated_at (same market listed
+        # in multiple Kalshi events, for example).
+        existing_idx = None
+        for idx, existing in enumerate(markets[canonical]["platforms"]):
+            if existing["platform_slug"] == platform:
+                existing_idx = idx
+                break
+        if existing_idx is not None:
+            old_ts = markets[canonical]["platforms"][existing_idx].get("updated_at", "")
+            new_ts = entry.get("updated_at", "")
+            if new_ts > old_ts:
+                markets[canonical]["platforms"][existing_idx] = entry
+        else:
+            markets[canonical]["platforms"].append(entry)
 
     # Sort: multi-platform markets first, then by number of platforms desc
     all_markets = sorted(markets.values(), key=lambda m: len(m["platforms"]), reverse=True)
