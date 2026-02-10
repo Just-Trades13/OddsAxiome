@@ -21,6 +21,7 @@ class PortalResponse(BaseModel):
 class SubscriptionStatusResponse(BaseModel):
     tier: str
     status: str | None  # active, past_due, canceled, trialing, None if free
+    is_trialing: bool = False
     current_period_end: datetime | None
     cancel_at_period_end: bool
 

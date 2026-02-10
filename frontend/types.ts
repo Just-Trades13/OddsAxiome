@@ -64,7 +64,9 @@ export interface MarketLine {
   yesPrice: Odd;
   noPrice: Odd;
   url: string;
-  liquidity?: number; 
+  liquidity?: number;
+  outcomeType?: OutcomeType;
+  isImpliedNo?: boolean;
 }
 
 export interface MarketEvent {
@@ -93,6 +95,8 @@ export interface AnalysisResult {
 
 export type UserTier = 'free' | 'explorer' | 'pro';
 
+export type OutcomeType = 'binary' | 'moneyline' | 'implied';
+
 export interface User {
   id: string;
   firstName: string;
@@ -104,6 +108,7 @@ export interface User {
   ipAddress?: string;
   isPaid: boolean;
   tier: UserTier;
+  subscriptionStatus?: string;
   registrationStep: 'lead' | 'verifying' | 'complete';
   createdAt: number;
   hideOnboardingTip?: boolean;

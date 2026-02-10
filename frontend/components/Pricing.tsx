@@ -34,6 +34,7 @@ export const Pricing: React.FC = () => {
         <div className="text-center space-y-4">
           <h1 className="text-4xl font-black text-white">Upgrade Your Portfolio</h1>
           <p className="text-slate-400">Join 500+ professionals using AI to dominate prediction markets.</p>
+          <p className="text-emerald-400/80 text-sm font-bold mt-2">All paid plans include a 7-day free trial. Cancel anytime.</p>
 
           {/* Toggle */}
           <div className="flex items-center justify-center gap-4 pt-6">
@@ -90,7 +91,7 @@ export const Pricing: React.FC = () => {
                disabled={loadingTier !== null}
                className="w-full py-4 bg-slate-800 hover:bg-slate-700 text-white rounded-2xl font-bold transition-all border border-slate-700 flex items-center justify-center gap-2"
              >
-                {loadingTier === 'explorer' ? <LoaderCircle className="w-5 h-5 animate-spin" /> : 'Get Started'}
+                {loadingTier === 'explorer' ? <LoaderCircle className="w-5 h-5 animate-spin" /> : 'Start 7-Day Free Trial'}
              </button>
           </div>
 
@@ -134,7 +135,7 @@ export const Pricing: React.FC = () => {
                disabled={loadingTier !== null}
                className="w-full py-4 bg-emerald-500 hover:bg-emerald-400 text-slate-950 rounded-2xl font-black transition-all shadow-lg shadow-emerald-500/20 flex items-center justify-center gap-2"
              >
-                {loadingTier === 'pro' ? <LoaderCircle className="w-5 h-5 animate-spin" /> : 'Upgrade Now'}
+                {loadingTier === 'pro' ? <LoaderCircle className="w-5 h-5 animate-spin" /> : 'Start 7-Day Free Trial'}
              </button>
           </div>
 

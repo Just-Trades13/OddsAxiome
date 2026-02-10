@@ -69,9 +69,20 @@ export const OddsCard: React.FC<OddsCardProps> = ({ event, onAnalyze, onRefreshS
           <h3 className="text-white text-lg font-black leading-tight tracking-tight">
             {event.outcome}
           </h3>
-          <p className="text-indigo-400/80 text-[11px] font-black uppercase tracking-wider mt-1.5">
-            {event.title}
-          </p>
+          <div className="flex items-center gap-2 mt-1.5">
+            <p className="text-indigo-400/80 text-[11px] font-black uppercase tracking-wider">
+              {event.title}
+            </p>
+            {isFree ? (
+              <span className="text-[8px] font-black bg-amber-500/20 text-amber-400 border border-amber-500/30 px-1.5 py-0.5 rounded whitespace-nowrap shrink-0">
+                15 MIN DELAY
+              </span>
+            ) : (
+              <span className="text-[8px] font-black bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 px-1.5 py-0.5 rounded whitespace-nowrap shrink-0">
+                REAL-TIME
+              </span>
+            )}
+          </div>
           {event.relevanceScore !== undefined && (
             <div className={clsx(
               "text-[9px] font-black mt-3 flex items-center gap-1.5 bg-slate-900/60 px-2.5 py-1 rounded-lg w-fit border border-white/5",
@@ -183,8 +194,8 @@ export const OddsCard: React.FC<OddsCardProps> = ({ event, onAnalyze, onRefreshS
            </div>
         </div>
 
-        {!event.id.startsWith('fallback') && (
-           <button 
+        {(
+           <button
              onClick={(e) => { e.stopPropagation(); handleRefresh(); }}
              disabled={isRefreshing}
              className="px-3 py-1.5 bg-slate-900 border border-slate-800 rounded-lg text-[10px] font-black text-sky-400 hover:text-sky-300 transition-colors flex items-center gap-2 disabled:opacity-50"
@@ -219,33 +230,39 @@ export const OddsCard: React.FC<OddsCardProps> = ({ event, onAnalyze, onRefreshS
 
               {line ? (
                 <div className="grid grid-cols-2 gap-3">
-                  <a 
-                    href={line.url} 
-                    target="_blank" 
+                  <a
+                    href={line.url}
+                    target="_blank"
                     rel="noopener noreferrer"
                     className={clsx(
                       "py-3 px-2 rounded-xl text-center text-xs font-mono font-black transition-all border-2 flex flex-col items-center justify-center gap-1",
-                      isHighlightedYes 
-                        ? "bg-emerald-500 text-slate-950 border-emerald-400 shadow-lg shadow-emerald-500/10" 
+                      isHighlightedYes
+                        ? "bg-emerald-500 text-slate-950 border-emerald-400 shadow-lg shadow-emerald-500/10"
                         : "bg-slate-950/60 text-slate-400 border-slate-800 hover:border-slate-700"
                     )}
                   >
-                    <span className="text-[9px] opacity-40">YES</span>
+                    <span className="text-[9px] opacity-40">
+                      {line.outcomeType === 'moneyline' ? 'TEAM A' : 'YES'}
+                    </span>
                     {(line.yesPrice.price * 100).toFixed(1)}¢
                   </a>
-                  <a 
-                    href={line.url} 
-                    target="_blank" 
+                  <a
+                    href={line.url}
+                    target="_blank"
                     rel="noopener noreferrer"
                     className={clsx(
                       "py-3 px-2 rounded-xl text-center text-xs font-mono font-black transition-all border-2 flex flex-col items-center justify-center gap-1",
-                      isHighlightedNo 
-                        ? "bg-emerald-500 text-slate-950 border-emerald-400 shadow-lg shadow-emerald-500/10" 
-                        : "bg-slate-950/60 text-slate-400 border-slate-800 hover:border-slate-700"
+                      isHighlightedNo
+                        ? "bg-emerald-500 text-slate-950 border-emerald-400 shadow-lg shadow-emerald-500/10"
+                        : "bg-slate-950/60 text-slate-400 border-slate-800 hover:border-slate-700",
+                      line.isImpliedNo && "opacity-50"
                     )}
                   >
-                    <span className="text-[9px] opacity-40">NO</span>
+                    <span className="text-[9px] opacity-40">
+                      {line.outcomeType === 'moneyline' ? 'TEAM B' : 'NO'}
+                    </span>
                     {(line.noPrice.price * 100).toFixed(1)}¢
+                    {line.isImpliedNo && <span className="text-[8px] opacity-60">(impl.)</span>}
                   </a>
                 </div>
               ) : (

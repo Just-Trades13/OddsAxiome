@@ -9,11 +9,19 @@ export default defineConfig(({ mode }) => {
         port: 3000,
         host: '0.0.0.0',
       },
+      build: {
+        outDir: '../static',
+        emptyOutDir: true,
+      },
       plugins: [react()],
       define: {
         'process.env.API_KEY': JSON.stringify(env.GEMINI_API_KEY || process.env.GEMINI_API_KEY || ''),
         'process.env.GEMINI_API_KEY': JSON.stringify(env.GEMINI_API_KEY || process.env.GEMINI_API_KEY || ''),
-        'process.env.VITE_BACKEND_URL': JSON.stringify(env.VITE_BACKEND_URL ?? process.env.VITE_BACKEND_URL ?? 'http://localhost:8000'),
+        // In production builds (served by the API on same origin) use '' for relative URLs.
+        // In dev mode, point to the local API server.
+        'process.env.VITE_BACKEND_URL': JSON.stringify(
+          env.VITE_BACKEND_URL ?? process.env.VITE_BACKEND_URL ?? (mode === 'development' ? 'http://localhost:8000' : '')
+        ),
       },
       resolve: {
         alias: {

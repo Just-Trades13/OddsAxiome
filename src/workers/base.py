@@ -19,6 +19,7 @@ class RawOddsData:
     outcome_name: str
     price: float  # Raw price in platform's native format
     price_format: str  # 'probability', 'cents', 'american_positive', 'american_negative', 'decimal'
+    outcome_type: str = "binary"  # 'binary', 'moneyline', or 'implied'
     bid: float | None = None
     ask: float | None = None
     volume_24h: float | None = None
@@ -42,6 +43,7 @@ class NormalizedOdds:
     outcome_name: str
     price: float  # Original price
     implied_prob: float  # Normalized 0.0-1.0
+    outcome_type: str = "binary"  # 'binary', 'moneyline', or 'implied'
     bid: float | None = None
     ask: float | None = None
     volume_24h: float | None = None

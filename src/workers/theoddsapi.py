@@ -116,6 +116,7 @@ class TheOddsAPIWorker(BaseIngestionWorker):
                                         outcome_name=name,
                                         price=float(price),
                                         price_format=price_format,
+                                        outcome_type="moneyline",
                                         market_url=None,
                                         outcomes_json=outcomes_json,
                                     )

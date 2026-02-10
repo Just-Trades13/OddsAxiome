@@ -3,7 +3,7 @@ import React, { useState } from 'react';
 import { MarketEvent, Platform, UserTier } from '../types.ts';
 import { OddsRow } from './OddsRow.tsx';
 import { OddsCard } from './OddsCard.tsx';
-import { GripVertical, ArrowUpDown, ArrowUp, ArrowDown, Info, ShieldCheck, HelpCircle, TrendingUp, Sparkles } from 'lucide-react';
+import { GripVertical, ArrowUpDown, ArrowUp, ArrowDown, Info, ShieldCheck, HelpCircle, TrendingUp, Sparkles, AlertTriangle, Zap } from 'lucide-react';
 import { clsx } from 'clsx';
 import { ArbSortOrder } from '../App.tsx';
 
@@ -54,8 +54,33 @@ export const Dashboard: React.FC<DashboardProps> = ({
     setDraggedPlatform(null);
   };
 
+  const isFree = userTier === 'free';
+
   return (
     <div className="flex flex-col gap-6">
+      {/* Data Freshness Banner */}
+      {isFree ? (
+        <div className="flex items-center justify-between gap-3 px-5 py-3 bg-amber-500/10 border border-amber-500/20 rounded-xl">
+          <div className="flex items-center gap-2.5 text-[11px] font-black text-amber-400 uppercase tracking-widest">
+            <AlertTriangle className="w-4 h-4 shrink-0" />
+            Delayed Data Feed — 15 Min Lag
+          </div>
+          <button
+            onClick={() => onToggleArbSort()}
+            className="text-[10px] font-black text-amber-300 hover:text-amber-200 transition-colors uppercase tracking-wider whitespace-nowrap"
+          >
+            Upgrade for Real-Time →
+          </button>
+        </div>
+      ) : (
+        <div className="flex items-center gap-2.5 px-5 py-3 bg-emerald-500/10 border border-emerald-500/20 rounded-xl">
+          <Zap className="w-4 h-4 text-emerald-400 shrink-0" />
+          <span className="text-[11px] font-black text-emerald-400 uppercase tracking-widest">
+            HFT Real-Time Feed — Sub-Second Updates
+          </span>
+        </div>
+      )}
+
       {/* Mobile View: Card List */}
       <div className="md:hidden space-y-4 pr-1">
         {events.map((event) => (
@@ -186,10 +211,17 @@ export const Dashboard: React.FC<DashboardProps> = ({
         </div>
       </div>
       
-      <div className="flex items-center gap-2 px-6 py-3 bg-slate-950 border border-slate-800 rounded-xl text-[10px] font-bold text-slate-500 uppercase tracking-widest">
-         <ShieldCheck className="w-3.5 h-3.5 text-emerald-500" />
-         All data points verified across {orderedPlatforms.length} platforms via OddsAxiom Quant Node
-      </div>
+      {isFree ? (
+        <div className="flex items-center gap-2 px-6 py-3 bg-amber-500/5 border border-amber-500/20 rounded-xl text-[10px] font-bold text-amber-400/80 uppercase tracking-widest">
+          <AlertTriangle className="w-3.5 h-3.5 text-amber-500 shrink-0" />
+          Data delayed ~15 minutes. Upgrade for HFT real-time access
+        </div>
+      ) : (
+        <div className="flex items-center gap-2 px-6 py-3 bg-emerald-500/5 border border-emerald-500/20 rounded-xl text-[10px] font-bold text-emerald-400/80 uppercase tracking-widest">
+          <ShieldCheck className="w-3.5 h-3.5 text-emerald-500 shrink-0" />
+          All data points verified in real-time via OddsAxiom Quant Node
+        </div>
+      )}
     </div>
   );
 };

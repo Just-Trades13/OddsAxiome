@@ -72,6 +72,7 @@ async def get_live_odds_for_market(redis: aioredis.Redis, market_id: str) -> lis
                 "implied_prob": float(data.get(f"outcome_{i}_implied", 0)),
                 "bid": float(data[f"outcome_{i}_bid"]) if data.get(f"outcome_{i}_bid") else None,
                 "ask": float(data[f"outcome_{i}_ask"]) if data.get(f"outcome_{i}_ask") else None,
+                "outcome_type": data.get(f"outcome_{i}_type", "binary"),
             })
             i += 1
 
@@ -169,6 +170,7 @@ async def get_all_live_odds(
                 "outcome_name": data.get(f"outcome_{i}_name", ""),
                 "price": float(data.get(f"outcome_{i}_price", 0)),
                 "implied_prob": float(data.get(f"outcome_{i}_implied", 0)),
+                "outcome_type": data.get(f"outcome_{i}_type", "binary"),
             })
             i += 1
 

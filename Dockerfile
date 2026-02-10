@@ -30,9 +30,9 @@ COPY alembic.ini .
 
 RUN pip install --no-cache-dir .
 
-# Copy built frontend into /app/static
-COPY --from=frontend-build /frontend/dist /app/static
+# Copy built frontend into /app/static (vite outputs to ../static relative to /frontend)
+COPY --from=frontend-build /static /app/static
 
 EXPOSE 8000
 
-CMD ["sh", "-c", "echo 'Running migrations...' && python -m alembic upgrade head && echo 'Migrations complete.' || echo 'Migration failed — check DATABASE_URL_SYNC' ; exec uvicorn src.api.app:create_app --factory --host 0.0.0.0 --port ${PORT:-8000} --workers 4"]
+CMD ["sh", "-c", "echo 'Running migrations...' && python -m alembic upgrade head && echo 'Migrations complete.' || echo 'Migration failed — check DATABASE_URL_SYNC' ; exec uvicorn src.api.app:create_app --factory --host 0.0.0.0 --port ${PORT:-8000}"]

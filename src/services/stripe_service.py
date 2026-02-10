@@ -47,6 +47,7 @@ async def create_checkout_session(
         customer=customer_id,
         mode="subscription",
         line_items=[{"price": price_id, "quantity": 1}],
+        subscription_data={"trial_period_days": 7},
         success_url=f"{settings.frontend_url}/membership?success=true&session_id={{CHECKOUT_SESSION_ID}}",
         cancel_url=f"{settings.frontend_url}/membership?canceled=true",
         metadata={"user_id": str(user.id), "tier_slug": tier_slug},
@@ -116,18 +117,27 @@ async def _handle_checkout_completed(db: AsyncSession, session_data: dict) -> No
     existing = await db.execute(select(Subscription).where(Subscription.user_id == user_id))
     sub = existing.scalar_one_or_none()
 
+    # Read actual subscription status from Stripe (will be "trialing" for trial subs)
+    actual_status = "active"
+    if subscription_id:
+        try:
+            stripe_sub = stripe.Subscription.retrieve(subscription_id)
+            actual_status = stripe_sub.status  # "trialing", "active", etc.
+        except Exception:
+            pass
+
     if sub:
         sub.tier_id = tier.id
         sub.stripe_customer_id = customer_id
         sub.stripe_subscription_id = subscription_id
-        sub.status = "active"
+        sub.status = actual_status
     else:
         sub = Subscription(
             user_id=user.id,
             tier_id=tier.id,
             stripe_customer_id=customer_id,
             stripe_subscription_id=subscription_id,
-            status="active",
+            status=actual_status,
         )
         db.add(sub)
 
@@ -180,6 +190,7 @@ async def _handle_subscription_updated(db: AsyncSession, sub_data: dict) -> None
     sub.status = status
     sub.cancel_at_period_end = sub_data.get("cancel_at_period_end", False)
 
+    # Trialing users get the same tier access as active
     # If canceled, revert user to free tier
     if status in ("canceled", "unpaid"):
         user_result = await db.execute(select(User).where(User.id == sub.user_id))

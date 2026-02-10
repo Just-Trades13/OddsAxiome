@@ -2,7 +2,7 @@
 import React, { useEffect, useState } from 'react';
 import { MarketEvent, Platform, UserTier } from '../types.ts';
 import { clsx } from 'clsx';
-import { Sparkles, TriangleAlert, Info, Globe, Clock, CheckCircle2, RefreshCw, Calculator, HelpCircle, Lock } from 'lucide-react';
+import { Sparkles, Info, Globe, Clock, CheckCircle2, RefreshCw, Calculator, HelpCircle, Lock } from 'lucide-react';
 
 interface OddsRowProps {
   event: MarketEvent;
@@ -16,7 +16,6 @@ interface OddsRowProps {
 export const OddsRow: React.FC<OddsRowProps> = ({ event, onAnalyze, onRefreshSingleEvent, platformOrder, onOpenCalculator, userTier }) => {
   const isFree = userTier === 'free';
   const isArb = !!event.arbPercent && event.arbPercent > 0;
-  const isMock = event.id.startsWith('fallback');
   const lines = event.lines || [];
   const [isRefreshing, setIsRefreshing] = useState(false);
 
@@ -26,7 +25,7 @@ export const OddsRow: React.FC<OddsRowProps> = ({ event, onAnalyze, onRefreshSin
   const [timeAgo, setTimeAgo] = useState<string>('just now');
 
   useEffect(() => {
-    if (isMock || !event.lastScraped) return;
+    if (!event.lastScraped) return;
     
     const updateTime = () => {
       const seconds = Math.floor((Date.now() - (event.lastScraped || 0)) / 1000);
@@ -38,7 +37,7 @@ export const OddsRow: React.FC<OddsRowProps> = ({ event, onAnalyze, onRefreshSin
     updateTime();
     const interval = setInterval(updateTime, 10000);
     return () => clearInterval(interval);
-  }, [event.lastScraped, isMock]);
+  }, [event.lastScraped]);
 
   const handleRefresh = async () => {
     setIsRefreshing(true);
@@ -65,7 +64,7 @@ export const OddsRow: React.FC<OddsRowProps> = ({ event, onAnalyze, onRefreshSin
   return (
     <div className={clsx(
       "grid grid-cols-[380px_85px_85px_85px_repeat(8,1fr)] hover:bg-slate-800/30 transition-colors group relative border-b border-slate-800/50 last:border-0",
-      isArb && !isMock && "bg-emerald-500/[0.04]"
+      isArb && "bg-emerald-500/[0.04]"
     )}>
       {/* Event Info */}
       <div className="p-4 flex flex-col justify-center border-r border-slate-800/50">
@@ -85,37 +84,42 @@ export const OddsRow: React.FC<OddsRowProps> = ({ event, onAnalyze, onRefreshSin
             )}
           </div>
           <div className="flex gap-2 shrink-0 mt-0.5">
-            {!isMock ? (
-              <div className="flex flex-col items-end gap-1">
+            <div className="flex flex-col items-end gap-1">
+              <div className="flex items-center gap-1.5">
                 <span className="text-[9px] font-black bg-indigo-500/20 text-indigo-400 border border-indigo-500/30 px-2 py-0.5 rounded flex items-center gap-1 whitespace-nowrap">
                   <Globe className="w-2.5 h-2.5" /> AI SCRAPED
                 </span>
-                <div className="flex items-center gap-2">
-                  <button 
-                    onClick={handleRefresh}
-                    disabled={isRefreshing}
-                    className="text-[10px] font-bold text-sky-400 hover:text-sky-300 transition-colors flex items-center gap-1 disabled:opacity-50"
-                  >
-                    <RefreshCw className={clsx("w-2.5 h-2.5", isRefreshing && "animate-spin")} />
-                    Refresh
-                  </button>
-                  <span className="text-[8px] text-slate-500 font-bold flex items-center gap-1">
-                    <Clock className="w-2 h-2" /> {timeAgo}
+                {isFree ? (
+                  <span className="text-[8px] font-black bg-amber-500/20 text-amber-400 border border-amber-500/30 px-1.5 py-0.5 rounded whitespace-nowrap">
+                    DELAYED
                   </span>
-                </div>
+                ) : (
+                  <span className="text-[8px] font-black bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 px-1.5 py-0.5 rounded whitespace-nowrap">
+                    LIVE
+                  </span>
+                )}
               </div>
-            ) : (
-              <span className="text-[10px] font-bold bg-amber-500/20 text-amber-500 border border-amber-500/30 px-2 py-1 rounded flex items-center gap-1 whitespace-nowrap">
-                <TriangleAlert className="w-2.5 h-2.5" /> SIMULATED
-              </span>
-            )}
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={handleRefresh}
+                  disabled={isRefreshing}
+                  className="text-[10px] font-bold text-sky-400 hover:text-sky-300 transition-colors flex items-center gap-1 disabled:opacity-50"
+                >
+                  <RefreshCw className={clsx("w-2.5 h-2.5", isRefreshing && "animate-spin")} />
+                  Refresh
+                </button>
+                <span className="text-[8px] text-slate-500 font-bold flex items-center gap-1">
+                  <Clock className="w-2 h-2" /> {timeAgo}
+                </span>
+              </div>
+            </div>
           </div>
         </div>
         <div className="flex items-start justify-between gap-2">
           <div className="font-bold text-white text-[15px] leading-tight group-hover:text-indigo-400 transition-colors flex-1 break-words">
             {event.outcome}
           </div>
-          {isArb && !isMock && (
+          {isArb && (
             <div className="relative group/arb">
               <span className={clsx(
                 "text-[10px] font-bold bg-emerald-450 text-slate-950 px-2 py-1 rounded uppercase tracking-wider shrink-0",
@@ -207,22 +211,30 @@ export const OddsRow: React.FC<OddsRowProps> = ({ event, onAnalyze, onRefreshSin
                 >
                   <div className={clsx(
                     "w-full py-1 rounded text-[10px] font-mono font-bold transition-all border flex items-center px-1.5 justify-between",
-                    isBestYes && isArb && !isMock
-                      ? "bg-emerald-400 text-slate-950 border-emerald-400 shadow-[0_0_10px_rgba(16,185,129,0.2)]" 
+                    isBestYes && isArb
+                      ? "bg-emerald-400 text-slate-950 border-emerald-400 shadow-[0_0_10px_rgba(16,185,129,0.2)]"
                       : "bg-slate-800/40 text-slate-400 border-transparent hover:border-slate-700 hover:text-slate-200"
                   )}>
-                    <span className="text-[8px] font-black opacity-50 uppercase tracking-tighter">Y</span>
+                    <span className="text-[8px] font-black opacity-50 uppercase tracking-tighter">
+                      {line.outcomeType === 'moneyline' ? 'A' : 'Y'}
+                    </span>
                     <span>{(line.yesPrice.price * 100).toFixed(1)}¢</span>
                   </div>
 
                   <div className={clsx(
                     "w-full py-1 rounded text-[10px] font-mono font-bold transition-all border flex items-center px-1.5 justify-between",
-                    isBestNo && isArb && !isMock
-                      ? "bg-emerald-400 text-slate-950 border-emerald-400 shadow-[0_0_10px_rgba(16,185,129,0.2)]" 
-                      : "bg-slate-800/40 text-slate-400 border-transparent hover:border-slate-700 hover:text-slate-200"
+                    isBestNo && isArb
+                      ? "bg-emerald-400 text-slate-950 border-emerald-400 shadow-[0_0_10px_rgba(16,185,129,0.2)]"
+                      : "bg-slate-800/40 text-slate-400 border-transparent hover:border-slate-700 hover:text-slate-200",
+                    line.isImpliedNo && "opacity-50"
                   )}>
-                    <span className="text-[8px] font-black opacity-50 uppercase tracking-tighter">N</span>
-                    <span>{(line.noPrice.price * 100).toFixed(1)}¢</span>
+                    <span className="text-[8px] font-black opacity-50 uppercase tracking-tighter">
+                      {line.outcomeType === 'moneyline' ? 'B' : 'N'}
+                    </span>
+                    <span>
+                      {(line.noPrice.price * 100).toFixed(1)}¢
+                      {line.isImpliedNo && <span className="text-[7px] ml-0.5 opacity-60">(implied)</span>}
+                    </span>
                   </div>
                 </a>
                 

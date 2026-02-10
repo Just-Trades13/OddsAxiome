@@ -47,6 +47,7 @@ def normalize_batch(raw_odds: list[RawOddsData]) -> list[NormalizedOdds]:
                 outcome_name=raw.outcome_name,
                 price=raw.price,
                 implied_prob=implied,
+                outcome_type=raw.outcome_type,
                 bid=raw.bid,
                 ask=raw.ask,
                 volume_24h=raw.volume_24h,

@@ -1,12 +1,11 @@
 
 import { MarketCategory, MarketEvent, Platform, MarketLine } from '../types.ts';
 import { calculateArb, calculateAPY, getSearchUrl } from '../constants.ts';
-import { generateMockEvents } from './mockData.ts';
 import { apiGet } from './api.ts';
 
 export interface FetchResponse {
   data: MarketEvent[];
-  source: 'live' | 'cache' | 'fallback';
+  source: 'live' | 'cache';
   errorReason?: 'QUOTA_EXHAUSTED' | 'NETWORK_ERROR' | 'TIMEOUT';
 }
 
@@ -59,7 +58,13 @@ function transformBackendOdds(raw: any[], category: MarketCategory): MarketEvent
       const noOutcome = outcomes.find((o: any) => o.outcome_name === 'No' || o.outcome_index === 1);
 
       const yesPrice = yesOutcome ? (yesOutcome.implied_prob ?? yesOutcome.price) : 0.5;
+      const noOutcomeType = noOutcome?.outcome_type || yesOutcome?.outcome_type || 'binary';
+      const hasDirectNo = !!noOutcome;
       const noPrice = noOutcome ? (noOutcome.implied_prob ?? noOutcome.price) : (yesOutcome ? 1 - (yesOutcome.implied_prob ?? yesOutcome.price) : 0.5);
+
+      // Determine outcome type and whether No is implied (synthesized from 1 - yesPrice)
+      const outcomeType = (yesOutcome?.outcome_type || noOutcomeType || 'binary') as import('../types.ts').OutcomeType;
+      const isImpliedNo = !hasDirectNo && outcomeType !== 'binary';
 
       return {
         platform,
@@ -67,6 +72,8 @@ function transformBackendOdds(raw: any[], category: MarketCategory): MarketEvent
         noPrice: { price: noPrice, timestamp: Date.now() },
         url: p.market_url || getSearchUrl(platform, marketTitle),
         liquidity: p.liquidity_usd ?? p.volume_24h ?? 0,
+        outcomeType,
+        isImpliedNo,
       };
     }).filter((l: MarketLine) => l.yesPrice.price > 0);
 
@@ -111,7 +118,7 @@ function transformBackendOdds(raw: any[], category: MarketCategory): MarketEvent
 
 /**
  * Fetches market data for a category.
- * Tries backend API first, falls back to Gemini AI, then mock data.
+ * Fetches live market data from the backend API.
  */
 export const fetchRealTimeMarkets = async (category: MarketCategory, forceRefresh = false): Promise<FetchResponse> => {
   // Map frontend category enum value to backend category string
@@ -131,18 +138,11 @@ export const fetchRealTimeMarkets = async (category: MarketCategory, forceRefres
       return { data: events, source: 'live' };
     }
   } catch (err: any) {
-    console.debug("Backend API unavailable, falling back:", err.message);
+    console.warn("[OddsAxiom] Backend API unavailable:", err.message);
   }
 
-  // Fallback to mock data
-  return new Promise((resolve) => {
-    setTimeout(() => {
-      resolve({
-        data: generateMockEvents(category),
-        source: 'fallback'
-      });
-    }, 300);
-  });
+  // No fallback — return empty so the UI shows "no markets" instead of fake data
+  return { data: [], source: 'live' };
 };
 
 export const refreshSingleMarket = async (event: MarketEvent): Promise<MarketEvent | null> => {

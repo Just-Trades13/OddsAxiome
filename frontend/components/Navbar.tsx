@@ -171,6 +171,9 @@ export const Navbar: React.FC<NavbarProps> = ({ currentNav, currentUser, theme, 
                 {currentUser.firstName[0]}
               </div>
               <span className="text-xs font-bold text-slate-900 dark:text-white hidden sm:block truncate max-w-[80px]">{currentUser.firstName}</span>
+              {currentUser.subscriptionStatus === 'trialing' && (
+                <span className="text-[9px] font-black bg-amber-500/20 text-amber-400 border border-amber-500/30 px-1.5 py-0.5 rounded hidden sm:block">TRIAL</span>
+              )}
               <ChevronDown className={clsx("w-3.5 h-3.5 text-slate-400 dark:text-slate-500 transition-transform", showDropdown && "rotate-180")} />
             </button>
 

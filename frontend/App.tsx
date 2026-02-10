@@ -30,7 +30,7 @@ import { syncUser, getMe, updateMe } from './services/api.ts';
 
 type MarketDataState = Record<MarketCategory, {
   events: MarketEvent[];
-  source: 'live' | 'cache' | 'fallback';
+  source: 'live' | 'cache';
   loading: boolean;
   lastUpdated?: number;
   errorReason?: 'QUOTA_EXHAUSTED' | 'NETWORK_ERROR' | 'TIMEOUT' | null;

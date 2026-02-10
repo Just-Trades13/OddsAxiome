@@ -34,6 +34,7 @@ async def subscription_status(user: User = Depends(get_current_user)):
     return SubscriptionStatusResponse(
         tier=user.tier,
         status=sub.status if sub else None,
+        is_trialing=sub.status == "trialing" if sub else False,
         current_period_end=sub.current_period_end if sub else None,
         cancel_at_period_end=sub.cancel_at_period_end if sub else False,
     )

@@ -1,3 +1,5 @@
+import asyncio
+import importlib
 import os
 from contextlib import asynccontextmanager
 from pathlib import Path
@@ -14,17 +16,82 @@ from src.core.security import init_firebase
 
 logger = structlog.get_logger()
 
+# Map worker names to their importable class paths
+_WORKER_MAP = {
+    "polymarket": "src.workers.polymarket.PolymarketWorker",
+    "kalshi": "src.workers.kalshi.KalshiWorker",
+    "predictit": "src.workers.predictit.PredictItWorker",
+    "theoddsapi": "src.workers.theoddsapi.TheOddsAPIWorker",
+    "gemini": "src.workers.gemini.GeminiWorker",
+    "coinbase": "src.workers.coinbase.CoinbaseWorker",
+    "robinhood": "src.workers.robinhood.RobinhoodWorker",
+    "limitless": "src.workers.limitless.LimitlessWorker",
+}
+
+
+def _start_workers(redis) -> list[asyncio.Task]:
+    """Start data-ingestion workers as background asyncio tasks.
+
+    Free / public sources (Polymarket, PredictIt, Limitless) always start.
+    Authenticated sources start only when their API key is configured.
+    """
+    # Public / free sources — no API key needed
+    sources = ["polymarket", "predictit", "limitless"]
+
+    # Authenticated sources — only when key is present
+    if settings.kalshi_api_key:
+        sources.append("kalshi")
+    if settings.the_odds_api_key:
+        sources.append("theoddsapi")
+    if settings.gemini_api_key:
+        sources.append("gemini")
+    if settings.coinbase_api_key:
+        sources.append("coinbase")
+
+    tasks: list[asyncio.Task] = []
+    for source in sources:
+        try:
+            dotted = _WORKER_MAP[source]
+            mod_path, cls_name = dotted.rsplit(".", 1)
+            mod = importlib.import_module(mod_path)
+            worker_cls = getattr(mod, cls_name)
+            worker = worker_cls(redis_pool=redis, config=settings)
+            task = asyncio.create_task(worker.run(), name=f"worker-{source}")
+            tasks.append(task)
+            logger.info("Background worker started", source=source)
+        except Exception as e:
+            logger.warning("Could not start worker", source=source, error=str(e))
+
+    return tasks
+
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     # Startup
     logger.info("Starting OddsAxiom API", environment=settings.environment)
-    await init_redis()
+    redis = await init_redis()
     logger.info("Redis connected")
     init_firebase()
     logger.info("Firebase initialized")
+
+    # Start ingestion workers so Redis gets populated with real market data
+    worker_tasks: list[asyncio.Task] = []
+    try:
+        worker_tasks = _start_workers(redis)
+        if worker_tasks:
+            logger.info("Ingestion workers running", count=len(worker_tasks))
+        else:
+            logger.warning("No ingestion workers started — site will show fallback data")
+    except Exception as e:
+        logger.error("Failed to start workers", error=str(e))
+
     yield
-    # Shutdown
+
+    # Shutdown — cancel workers, then close redis
+    for task in worker_tasks:
+        task.cancel()
+    if worker_tasks:
+        await asyncio.gather(*worker_tasks, return_exceptions=True)
     await close_redis()
     logger.info("OddsAxiom API shutdown complete")
 
