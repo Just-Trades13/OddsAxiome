@@ -86,6 +86,9 @@ async def get_live_odds_for_market(redis: aioredis.Redis, market_id: str) -> lis
     return results
 
 
+_RESPONSE_CACHE_TTL = 30  # seconds — workers publish every ~30s
+
+
 async def get_all_live_odds(
     redis: aioredis.Redis,
     page: int = 1,
@@ -96,8 +99,29 @@ async def get_all_live_odds(
 
     Uses fuzzy event-key clustering so that the same market on different
     platforms (e.g. Polymarket + PredictIt) appears as a single entry
-    with multiple platform rows.
+    with multiple platform rows.  Results are cached for 30s.
     """
+    # Check response cache first
+    cache_key = f"odds:response:{category or 'all'}"
+    cached = await redis.get(cache_key)
+    if cached:
+        try:
+            all_markets = orjson.loads(cached)
+            total = len(all_markets)
+            start = (page - 1) * per_page
+            end = start + per_page
+            return {
+                "data": all_markets[start:end],
+                "meta": {
+                    "page": page,
+                    "per_page": per_page,
+                    "total": total,
+                    "total_pages": (total + per_page - 1) // per_page,
+                },
+            }
+        except Exception:
+            pass
+
     # Step 1: Collect all matching keys with SCAN
     keys: list[str] = []
     async for key in redis.scan_iter(match="odds:live:*", count=500):
@@ -202,6 +226,13 @@ async def get_all_live_odds(
 
     # Sort: multi-platform markets first, then by number of platforms desc
     all_markets = sorted(markets.values(), key=lambda m: len(m["platforms"]), reverse=True)
+
+    # Cache the full sorted list for 30s
+    try:
+        await redis.set(cache_key, orjson.dumps(all_markets), ex=_RESPONSE_CACHE_TTL)
+    except Exception:
+        pass
+
     total = len(all_markets)
     start = (page - 1) * per_page
     end = start + per_page
