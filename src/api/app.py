@@ -81,13 +81,31 @@ async def lifespan(app: FastAPI):
         if worker_tasks:
             logger.info("Ingestion workers running", count=len(worker_tasks))
         else:
-            logger.warning("No ingestion workers started — site will show fallback data")
+            logger.warning("No ingestion workers started -- site will show fallback data")
     except Exception as e:
         logger.error("Failed to start workers", error=str(e))
 
+    # Background cache warmer: pre-builds the expensive odds response every 90s
+    # so user requests always hit the fast cache path.
+    async def _warm_odds_cache():
+        from src.services.odds_service import get_all_live_odds
+        await asyncio.sleep(60)  # wait for workers to publish first batch
+        categories = [None, "politics", "economics", "crypto", "science", "culture", "sports"]
+        while True:
+            try:
+                for cat in categories:
+                    await get_all_live_odds(redis, page=1, per_page=1, category=cat)
+                logger.debug("Odds response cache warmed")
+            except Exception as e:
+                logger.warning("Cache warm failed", error=str(e))
+            await asyncio.sleep(90)
+
+    cache_task = asyncio.create_task(_warm_odds_cache(), name="cache-warmer")
+
     yield
 
-    # Shutdown — cancel workers, then close redis
+    # Shutdown — cancel workers + cache warmer, then close redis
+    cache_task.cancel()
     for task in worker_tasks:
         task.cancel()
     if worker_tasks:

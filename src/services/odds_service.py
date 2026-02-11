@@ -86,7 +86,7 @@ async def get_live_odds_for_market(redis: aioredis.Redis, market_id: str) -> lis
     return results
 
 
-_RESPONSE_CACHE_TTL = 30  # seconds — workers publish every ~30s
+_RESPONSE_CACHE_TTL = 120  # seconds — workers publish every ~30s, but scan is expensive
 
 
 async def get_all_live_odds(
