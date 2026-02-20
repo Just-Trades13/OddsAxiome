@@ -9,9 +9,9 @@ import os
 import time
 from functools import lru_cache
 
+from cryptography.x509 import load_pem_x509_certificate
 import httpx
 import jwt
-from jwt import PyJWKClient
 import structlog
 
 from src.core.config import settings
@@ -97,15 +97,17 @@ async def verify_firebase_token(id_token: str) -> dict | None:
             logger.warning("Firebase token kid not found in Google certs", kid=kid)
             return None
 
-        # Get the public key for this kid
+        # Get the public key from the X.509 certificate
         cert_pem = certs[kid]
+        cert = load_pem_x509_certificate(cert_pem.encode("utf-8"))
+        public_key = cert.public_key()
 
         # Verify and decode the token
         decoded = await loop.run_in_executor(
             None,
             lambda: jwt.decode(
                 id_token,
-                cert_pem,
+                public_key,
                 algorithms=["RS256"],
                 audience=project_id,
                 issuer=expected_issuer,
