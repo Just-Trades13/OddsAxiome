@@ -4,21 +4,36 @@ Gemini Predictions (powered by Gemini Titan DCM license) offers event contracts
 on politics, economics, crypto, and more. The /v1/prediction-markets/events
 endpoint is public and returns paginated events with nested contracts.
 
-Response shape:
+Response shape (verified 2026-02-20):
 {
   "data": [{
-    "id": "evt_123",
+    "id": "884",
     "title": "...",
     "slug": "...",
-    "type": "binary" | "categorical",
-    "category": "Politics",
-    "ticker": "BTC100K",
+    "type": "categorical",
+    "category": "Sports",
+    "ticker": "MIHGOLD26",
     "status": "active",
-    "contracts": [{"id": "...", "label": "Yes", "price": "0.65", "ticker": "..."}],
-    "liquidity": "500000.00",
-    "expiryDate": "2025-12-31T23:59:59.000Z"
+    "volume": "104070",
+    "volume24h": "15999",
+    "liquidity": null,
+    "contracts": [{
+      "id": "884-4408",
+      "label": "Canada",
+      "prices": {
+        "buy": {"yes": "0.57", "no": "0.47"},
+        "sell": {"yes": "0.53", "no": "0.43"},
+        "bestBid": "0.53",
+        "bestAsk": "0.57",
+        "lastTradePrice": "0.57"
+      },
+      "ticker": "CAN",
+      "instrumentSymbol": "GEMI-MIHGOLD26-CAN",
+      "status": "active"
+    }],
+    "expiryDate": "2026-02-22T16:40:00.000Z"
   }],
-  "pagination": {"limit": 50, "offset": 0, "total": 100}
+  "pagination": {"limit": 2, "offset": 0, "total": 1000}
 }
 """
 import httpx
@@ -35,10 +50,13 @@ GEMINI_CATEGORY_MAP = {
     "politics": "politics",
     "elections": "politics",
     "economics": "economics",
+    "economy": "economics",
     "financial": "economics",
     "crypto": "crypto",
     "sports": "sports",
     "entertainment": "culture",
+    "fun/culture": "culture",
+    "media": "culture",
     "science": "science",
     "technology": "science",
     "climate": "science",
@@ -131,7 +149,15 @@ class GeminiWorker(BaseIngestionWorker):
 
                     for i, contract in enumerate(contracts):
                         label = contract.get("label", f"Option {i}")
-                        price_str = contract.get("price")
+
+                        # Gemini nests pricing under "prices" object, not a flat "price" field.
+                        # Use lastTradePrice as the canonical price; fall back to bestAsk, then buy.yes.
+                        prices_obj = contract.get("prices") or {}
+                        price_str = (
+                            prices_obj.get("lastTradePrice")
+                            or prices_obj.get("bestAsk")
+                            or (prices_obj.get("buy", {}) or {}).get("yes")
+                        )
 
                         if price_str is None:
                             continue
@@ -157,7 +183,7 @@ class GeminiWorker(BaseIngestionWorker):
                                 outcome_name=label,
                                 price=price,
                                 price_format="probability",
-                                volume_usd=_safe_float(event.get("liquidity")),
+                                volume_usd=_safe_float(event.get("volume") or event.get("volume24h")),
                                 market_url=market_url,
                                 outcomes_json=outcomes_json,
                             )
