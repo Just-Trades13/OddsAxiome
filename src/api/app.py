@@ -22,31 +22,21 @@ _WORKER_MAP = {
     "kalshi": "src.workers.kalshi.KalshiWorker",
     "predictit": "src.workers.predictit.PredictItWorker",
     "theoddsapi": "src.workers.theoddsapi.TheOddsAPIWorker",
-    "gemini": "src.workers.gemini.GeminiWorker",
-    "coinbase": "src.workers.coinbase.CoinbaseWorker",
-    "robinhood": "src.workers.robinhood.RobinhoodWorker",
-    "limitless": "src.workers.limitless.LimitlessWorker",
 }
 
 
 def _start_workers(redis) -> list[asyncio.Task]:
     """Start data-ingestion workers as background asyncio tasks.
 
-    Free / public sources (Polymarket, PredictIt, Limitless) always start.
-    Authenticated sources start only when their API key is configured.
+    Active sources: Polymarket, PredictIt (free), Kalshi, TheOddsAPI (keyed).
+    TheOddsAPI covers DraftKings, FanDuel, BetMGM, Bovada, BetRivers.
     """
-    # Public / free sources — no API key needed
-    sources = ["polymarket", "predictit", "limitless"]
+    sources = ["polymarket", "predictit"]
 
-    # Authenticated sources — only when key is present
     if settings.kalshi_api_key:
         sources.append("kalshi")
     if settings.the_odds_api_key:
         sources.append("theoddsapi")
-    if settings.gemini_api_key:
-        sources.append("gemini")
-    if settings.coinbase_api_key:
-        sources.append("coinbase")
 
     tasks: list[asyncio.Task] = []
     for source in sources:

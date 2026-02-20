@@ -111,7 +111,7 @@ class TheOddsAPIWorker(BaseIngestionWorker):
                                         external_market_id=f"{event_id}_{bk_key}",
                                         market_title=title,
                                         category=category,
-                                        platform_slug=bk_key,  # 'draftkings' or 'fanduel'
+                                        platform_slug=bk_key,  # draftkings, fanduel, betmgm, bovada, betrivers
                                         outcome_index=i,
                                         outcome_name=name,
                                         price=float(price),
