@@ -6,7 +6,7 @@ from src.workers.base import NormalizedOdds
 
 logger = structlog.get_logger()
 
-LIVE_CACHE_TTL = 120  # seconds before live odds expire
+LIVE_CACHE_TTL = 660  # 11 minutes — must exceed slowest worker poll (TheOddsAPI 5 min)
 STREAM_KEY = "odds:normalized"
 STREAM_MAXLEN = 50000  # Cap stream length to prevent unbounded growth
 

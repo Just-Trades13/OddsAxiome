@@ -42,7 +42,7 @@ class TheOddsAPIWorker(BaseIngestionWorker):
     # At 5 min: 6 × 288/day = 1,728/day — burns quota in ~9 days.
     # At 15 min: 6 × 96/day = 576/day — burns in ~26 days. Close but OK.
     # Rate limit fix: 2s delay between sport requests prevents 429 errors.
-    poll_interval = 900.0  # 15 minutes — balances freshness vs quota
+    poll_interval = 300.0  # 5 minutes — Redis TTL is 660s so data persists between polls
 
     def __init__(self, redis_pool, config):
         super().__init__(redis_pool, config)

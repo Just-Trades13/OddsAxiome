@@ -133,6 +133,9 @@ class KalshiWorker(BaseIngestionWorker):
                     params["cursor"] = cursor
 
                 resp = await self.client.get("/events", params=params)
+                if resp.status_code == 429:
+                    self.logger.warning("Kalshi: rate limited, using partial results", pages=pages)
+                    break
                 resp.raise_for_status()
                 data = resp.json()
 
@@ -233,7 +236,7 @@ class KalshiWorker(BaseIngestionWorker):
                 pages += 1
                 if not cursor or not events:
                     break
-                await asyncio.sleep(0.5)
+                await asyncio.sleep(1.5)  # 1.5s delay to avoid 429 rate limits
 
         except httpx.HTTPError as e:
             self.logger.error("Kalshi API error", error=str(e))
