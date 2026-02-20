@@ -38,11 +38,10 @@ SPORTS_TO_FETCH = [
 
 class TheOddsAPIWorker(BaseIngestionWorker):
     platform_slug = "draftkings"  # Primary bookmaker we pull from this source
-    # Free plan: 500 requests/month. 6 sports × 1 req each per cycle.
-    # At 5 min: 6 × 288/day = 1,728/day — burns quota in ~9 days.
-    # At 15 min: 6 × 96/day = 576/day — burns in ~26 days. Close but OK.
-    # Rate limit fix: 2s delay between sport requests prevents 429 errors.
-    poll_interval = 300.0  # 5 minutes — Redis TTL is 660s so data persists between polls
+    # Paid plan ($59/mo): 100,000 requests/month. 6 sports × 1 req each per cycle.
+    # At 3 min: 6 × 480/day = 2,880/day × 30 = 86,400/month — comfortably under 100K.
+    # 2s delay between sport requests prevents burst rate limiting.
+    poll_interval = 180.0  # 3 minutes — near-real-time sportsbook data
 
     def __init__(self, redis_pool, config):
         super().__init__(redis_pool, config)
