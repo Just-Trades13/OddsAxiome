@@ -2,7 +2,7 @@
 import React, { useEffect, useState } from 'react';
 import { MarketEvent, Platform, UserTier } from '../types.ts';
 import { clsx } from 'clsx';
-import { Sparkles, Info, Globe, Clock, CheckCircle2, RefreshCw, Calculator, HelpCircle, Lock } from 'lucide-react';
+import { Sparkles, Info, Globe, Clock, CheckCircle2, RefreshCw, Calculator, HelpCircle, Lock, TrendingUp, BarChart3 } from 'lucide-react';
 
 interface OddsRowProps {
   event: MarketEvent;
@@ -10,10 +10,12 @@ interface OddsRowProps {
   onRefreshSingleEvent: (event: MarketEvent) => void;
   platformOrder: Platform[];
   onOpenCalculator: (event: MarketEvent) => void;
+  onOpenChart: (event: MarketEvent) => void;
+  onOpenOrderBook: (event: MarketEvent) => void;
   userTier: UserTier;
 }
 
-export const OddsRow: React.FC<OddsRowProps> = ({ event, onAnalyze, onRefreshSingleEvent, platformOrder, onOpenCalculator, userTier }) => {
+export const OddsRow: React.FC<OddsRowProps> = ({ event, onAnalyze, onRefreshSingleEvent, platformOrder, onOpenCalculator, onOpenChart, onOpenOrderBook, userTier }) => {
   const isFree = userTier === 'free';
   const isArb = !!event.arbPercent && event.arbPercent > 0;
   const lines = event.lines || [];
@@ -101,6 +103,14 @@ export const OddsRow: React.FC<OddsRowProps> = ({ event, onAnalyze, onRefreshSin
               </div>
               <div className="flex items-center gap-2">
                 <button
+                  onClick={() => onOpenOrderBook(event)}
+                  className="text-[10px] font-bold text-purple-400 hover:text-purple-300 transition-colors flex items-center gap-1"
+                  title="Market Depth"
+                >
+                  <BarChart3 className="w-2.5 h-2.5" />
+                  Depth
+                </button>
+                <button
                   onClick={handleRefresh}
                   disabled={isRefreshing}
                   className="text-[10px] font-bold text-sky-400 hover:text-sky-300 transition-colors flex items-center gap-1 disabled:opacity-50"
@@ -180,9 +190,9 @@ export const OddsRow: React.FC<OddsRowProps> = ({ event, onAnalyze, onRefreshSin
       </div>
 
       {/* Calculator Column */}
-      <div className="p-2 flex items-center justify-center border-l border-slate-800/50 bg-slate-900/20">
-        <button 
-          onClick={() => onOpenCalculator(event)} 
+      <div className="p-2 flex items-center justify-center gap-1 border-l border-slate-800/50 bg-slate-900/20">
+        <button
+          onClick={() => onOpenCalculator(event)}
           className={clsx(
             "p-1.5 rounded-lg transition-all border group/calc",
             isArb ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/20 hover:bg-emerald-500 hover:text-white" : "bg-slate-800/40 text-slate-600 border-transparent hover:text-slate-400"
@@ -190,6 +200,13 @@ export const OddsRow: React.FC<OddsRowProps> = ({ event, onAnalyze, onRefreshSin
           title="Arbitrage Calculator"
         >
           <Calculator className="w-3.5 h-3.5 group-hover/calc:rotate-12 transition-transform" />
+        </button>
+        <button
+          onClick={() => onOpenChart(event)}
+          className="p-1.5 rounded-lg bg-slate-800/40 text-slate-600 border border-transparent hover:text-sky-400 hover:border-sky-500/20 hover:bg-sky-500/10 transition-all"
+          title="Price History"
+        >
+          <TrendingUp className="w-3.5 h-3.5" />
         </button>
       </div>
 

@@ -1,8 +1,9 @@
-import React, { useState } from 'react';
-import { Activity, Bell, BookOpen, CreditCard, LayoutDashboard, LogIn, ChevronDown, UserCircle, LogIn as LoginIcon, X, Zap, Sun, Moon, Share2 } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { Activity, Bell, BookOpen, CreditCard, LayoutDashboard, LogIn, ChevronDown, UserCircle, LogIn as LoginIcon, X, Zap, Sun, Moon, Share2, Check, Trash2 } from 'lucide-react';
 import { clsx } from 'clsx';
 import { User } from '../types.ts';
 import { Theme } from '../App.tsx';
+import { getNotifications, markNotificationsRead, clearNotifications } from '../services/api.ts';
 
 interface NavbarProps {
   currentNav: 'dashboard' | 'alpha' | 'how-it-works' | 'pricing' | 'profile';
@@ -19,6 +20,42 @@ export const Navbar: React.FC<NavbarProps> = ({ currentNav, currentUser, theme, 
   const [showDropdown, setShowDropdown] = useState(false);
   const [showNotifications, setShowNotifications] = useState(false);
   const [showMobileNav, setShowMobileNav] = useState(false);
+  const [notifications, setNotifications] = useState<any[]>([]);
+  const [unreadCount, setUnreadCount] = useState(0);
+  const [notifLoading, setNotifLoading] = useState(false);
+
+  useEffect(() => {
+    if (!currentUser) return;
+    loadNotifications();
+    const interval = setInterval(loadNotifications, 30000);
+    return () => clearInterval(interval);
+  }, [currentUser]);
+
+  async function loadNotifications() {
+    if (!currentUser) return;
+    try {
+      const res = await getNotifications(1, 10);
+      setNotifications(res.data || []);
+      setUnreadCount(Number(res.unread_count) || 0);
+    } catch {
+      // Silently fail — notifications are not critical
+    }
+  }
+
+  async function handleMarkRead() {
+    try {
+      await markNotificationsRead();
+      setUnreadCount(0);
+    } catch {}
+  }
+
+  async function handleClearAll() {
+    try {
+      await clearNotifications();
+      setNotifications([]);
+      setUnreadCount(0);
+    } catch {}
+  }
 
   const handleMobileNavClick = (nav: any) => {
     onNavChange(nav);
@@ -142,21 +179,48 @@ export const Navbar: React.FC<NavbarProps> = ({ currentNav, currentUser, theme, 
 
         <div className="hidden sm:block relative">
           <button
-            onClick={() => setShowNotifications(!showNotifications)}
+            onClick={() => { setShowNotifications(!showNotifications); if (!showNotifications && unreadCount > 0) handleMarkRead(); }}
             className="p-2 text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl transition-colors relative group"
           >
             <Bell className="w-5 h-5" />
-            <span className="absolute top-2.5 right-2.5 w-2 h-2 bg-emerald-500 rounded-full border-2 border-white dark:border-slate-900"></span>
+            {unreadCount > 0 && (
+              <span className="absolute top-1.5 right-1.5 min-w-[16px] h-4 bg-emerald-500 rounded-full border-2 border-white dark:border-slate-900 flex items-center justify-center text-[8px] font-black text-slate-950 px-1">
+                {unreadCount > 9 ? '9+' : unreadCount}
+              </span>
+            )}
           </button>
           {showNotifications && (
-            <div className="absolute right-0 mt-2 w-72 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-2xl shadow-xl z-50 overflow-hidden">
-              <div className="px-4 py-3 border-b border-slate-100 dark:border-slate-800">
+            <div className="absolute right-0 mt-2 w-80 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-2xl shadow-xl z-50 overflow-hidden">
+              <div className="px-4 py-3 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between">
                 <h4 className="text-xs font-black text-slate-600 dark:text-slate-400 uppercase tracking-widest">Notifications</h4>
+                {notifications.length > 0 && (
+                  <button
+                    onClick={handleClearAll}
+                    className="text-[9px] font-bold text-slate-500 hover:text-red-400 transition-colors flex items-center gap-1"
+                  >
+                    <Trash2 className="w-3 h-3" /> Clear
+                  </button>
+                )}
               </div>
-              <div className="px-4 py-8 text-center">
-                <Bell className="w-8 h-8 text-slate-300 dark:text-slate-700 mx-auto mb-2" />
-                <p className="text-xs text-slate-400 font-medium">No new notifications</p>
-              </div>
+              {notifications.length === 0 ? (
+                <div className="px-4 py-8 text-center">
+                  <Bell className="w-8 h-8 text-slate-300 dark:text-slate-700 mx-auto mb-2" />
+                  <p className="text-xs text-slate-400 font-medium">No notifications yet</p>
+                  <p className="text-[10px] text-slate-500 mt-1">Arb alerts will appear here</p>
+                </div>
+              ) : (
+                <div className="max-h-80 overflow-y-auto divide-y divide-slate-100 dark:divide-slate-800">
+                  {notifications.map((n, i) => (
+                    <div key={n.id || i} className="px-4 py-3 hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors">
+                      <p className="text-xs font-bold text-slate-800 dark:text-slate-200">{n.title}</p>
+                      <p className="text-[11px] text-slate-500 mt-0.5">{n.message}</p>
+                      <p className="text-[9px] text-slate-400 mt-1 font-medium">
+                        {new Date(n.created_at).toLocaleString()}
+                      </p>
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
           )}
         </div>

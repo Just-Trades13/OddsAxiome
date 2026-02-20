@@ -2,18 +2,20 @@
 import React, { useState } from 'react';
 import { MarketEvent, Platform, UserTier } from '../types.ts';
 import { clsx } from 'clsx';
-import { Sparkles, Calendar, Clock, TrendingUp, CheckCircle2, RefreshCw, Calculator, HelpCircle, Lock } from 'lucide-react';
+import { Sparkles, Calendar, Clock, TrendingUp, CheckCircle2, RefreshCw, Calculator, HelpCircle, Lock, BarChart3 } from 'lucide-react';
 
 interface OddsCardProps {
   event: MarketEvent;
   onAnalyze: (event: MarketEvent) => void;
   onRefreshSingleEvent: (event: MarketEvent) => void;
   onOpenCalculator: (event: MarketEvent) => void;
+  onOpenChart: (event: MarketEvent) => void;
+  onOpenOrderBook: (event: MarketEvent) => void;
   platformOrder: Platform[];
   userTier: UserTier;
 }
 
-export const OddsCard: React.FC<OddsCardProps> = ({ event, onAnalyze, onRefreshSingleEvent, onOpenCalculator, platformOrder, userTier }) => {
+export const OddsCard: React.FC<OddsCardProps> = ({ event, onAnalyze, onRefreshSingleEvent, onOpenCalculator, onOpenChart, onOpenOrderBook, platformOrder, userTier }) => {
   const isFree = userTier === 'free';
   const isArb = !!event.arbPercent && event.arbPercent > 0;
   const lines = event.lines || [];
@@ -194,16 +196,30 @@ export const OddsCard: React.FC<OddsCardProps> = ({ event, onAnalyze, onRefreshS
            </div>
         </div>
 
-        {(
+        <div className="flex items-center gap-2">
+           <button
+             onClick={(e) => { e.stopPropagation(); onOpenOrderBook(event); }}
+             className="px-2.5 py-1.5 bg-slate-900 border border-slate-800 rounded-lg text-[10px] font-black text-purple-400 hover:text-purple-300 transition-colors flex items-center gap-1.5"
+           >
+             <BarChart3 className="w-3 h-3" />
+             Depth
+           </button>
+           <button
+             onClick={(e) => { e.stopPropagation(); onOpenChart(event); }}
+             className="px-2.5 py-1.5 bg-slate-900 border border-slate-800 rounded-lg text-[10px] font-black text-sky-400 hover:text-sky-300 transition-colors flex items-center gap-1.5"
+           >
+             <TrendingUp className="w-3 h-3" />
+             Chart
+           </button>
            <button
              onClick={(e) => { e.stopPropagation(); handleRefresh(); }}
              disabled={isRefreshing}
-             className="px-3 py-1.5 bg-slate-900 border border-slate-800 rounded-lg text-[10px] font-black text-sky-400 hover:text-sky-300 transition-colors flex items-center gap-2 disabled:opacity-50"
+             className="px-2.5 py-1.5 bg-slate-900 border border-slate-800 rounded-lg text-[10px] font-black text-sky-400 hover:text-sky-300 transition-colors flex items-center gap-1.5 disabled:opacity-50"
            >
              <RefreshCw className={clsx("w-3 h-3", isRefreshing && "animate-spin")} />
              Sync
            </button>
-        )}
+        </div>
       </div>
 
       <div className="space-y-3 max-h-[350px] overflow-y-auto pr-1 scrollbar-hide" onClick={(e) => e.stopPropagation()}>

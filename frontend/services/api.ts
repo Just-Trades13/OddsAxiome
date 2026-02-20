@@ -126,6 +126,51 @@ export async function adminDeleteUser(userId: string) {
   return res.json();
 }
 
+// Notification endpoints
+export async function getNotifications(page = 1, perPage = 20) {
+  const qs = new URLSearchParams({ page: String(page), per_page: String(perPage) });
+  return apiGet<{
+    data: Array<{
+      id: string;
+      type: string;
+      title: string;
+      message: string;
+      created_at: string;
+      market_id?: string;
+    }>;
+    meta: { page: number; per_page: number; total: number };
+    unread_count: number;
+  }>(`/notifications?${qs}`, true);
+}
+
+export async function markNotificationsRead() {
+  return apiPost<{ success: boolean }>('/notifications/read', {});
+}
+
+export async function clearNotifications() {
+  const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+  Object.assign(headers, await getAuthHeaders());
+  const res = await fetch(`${BASE_URL}/notifications`, { method: 'DELETE', headers });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({ detail: res.statusText }));
+    throw new Error(err.detail || `API Error ${res.status}`);
+  }
+  return res.json();
+}
+
+// Odds history endpoint
+export async function getOddsHistory(marketId: string, outcome?: string, limit = 500) {
+  const qs = new URLSearchParams({ limit: String(limit) });
+  if (outcome) qs.set('outcome', outcome);
+  return apiGet<Array<{
+    captured_at: string;
+    price: number;
+    implied_prob: number;
+    platform_id: number;
+    outcome_name: string;
+  }>>(`/odds/history/${encodeURIComponent(marketId)}?${qs}`, true);
+}
+
 // Affiliate endpoints
 export async function registerAffiliate() {
   return apiPost<{ code: string; commission_rate: number }>('/affiliates/register', {});

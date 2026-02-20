@@ -34,6 +34,7 @@ class Settings(BaseSettings):
     gemini_api_key: str = ""
     coinbase_api_key: str = ""
     coinbase_api_secret: str = ""
+    apify_api_token: str = ""
 
     # App
     cors_origins: str = "https://oddsaxiom.com,http://localhost:3000"

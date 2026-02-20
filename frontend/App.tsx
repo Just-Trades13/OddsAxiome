@@ -17,6 +17,8 @@ import { AuthModal } from './components/AuthModal.tsx';
 import { AdminPortal } from './components/AdminPortal.tsx';
 import { AffiliateDashboard } from './components/AffiliateDashboard.tsx';
 import { FeedbackDrawer } from './components/FeedbackDrawer.tsx';
+import { PriceHistoryModal } from './components/PriceHistoryModal.tsx';
+import { OrderBookModal } from './components/OrderBookModal.tsx';
 import { MarketCategory, MarketEvent, Platform, User, UserTier } from './types.ts';
 import { fetchRealTimeMarkets, searchMarketsByQuery, refreshSingleMarket } from './services/marketDataService.ts';
 import { PLATFORMS as INITIAL_PLATFORMS } from './constants.ts';
@@ -89,6 +91,8 @@ export default function App() {
   
   const [isAnalyzeOpen, setIsAnalyzeOpen] = useState(false);
   const [isCalculatorOpen, setIsCalculatorOpen] = useState(false);
+  const [isChartOpen, setIsChartOpen] = useState(false);
+  const [isOrderBookOpen, setIsOrderBookOpen] = useState(false);
   const [arbSortOrder, setArbSortOrder] = useState<ArbSortOrder>(null);
   
   const [orderedPlatforms, setOrderedPlatforms] = useState<Platform[]>(() => {
@@ -536,6 +540,8 @@ export default function App() {
                         onReorderPlatforms={handleReorderPlatforms} onRefreshSingleEvent={handleRefreshSingleEvent}
                         onAnalyze={(e) => { setSelectedEvent(e); setIsAnalyzeOpen(true); }}
                         onOpenCalculator={(e) => { setSelectedEvent(e); setIsCalculatorOpen(true); }}
+                        onOpenChart={(e) => { setSelectedEvent(e); setIsChartOpen(true); }}
+                        onOpenOrderBook={(e) => { setSelectedEvent(e); setIsOrderBookOpen(true); }}
                         userTier={userTier}
                       />
                       {isEventsTruncated && (
@@ -585,6 +591,8 @@ export default function App() {
       )}
       {isAnalyzeOpen && selectedEvent && <AnalyzeModal event={selectedEvent} onClose={() => setIsAnalyzeOpen(false)} />}
       {isCalculatorOpen && selectedEvent && <CalculatorModal event={selectedEvent} onClose={() => setIsCalculatorOpen(false)} />}
+      {isChartOpen && selectedEvent && <PriceHistoryModal event={selectedEvent} onClose={() => setIsChartOpen(false)} userTier={userTier} onUpgrade={() => { setIsChartOpen(false); setNavView('pricing'); }} />}
+      {isOrderBookOpen && selectedEvent && <OrderBookModal event={selectedEvent} onClose={() => setIsOrderBookOpen(false)} />}
       
       <FeedbackDrawer 
         isOpen={isFeedbackOpen} 

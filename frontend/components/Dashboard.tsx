@@ -16,6 +16,8 @@ interface DashboardProps {
   onRefreshSingleEvent: (event: MarketEvent) => void;
   onAnalyze: (event: MarketEvent) => void;
   onOpenCalculator: (event: MarketEvent) => void;
+  onOpenChart: (event: MarketEvent) => void;
+  onOpenOrderBook: (event: MarketEvent) => void;
   userTier: UserTier;
 }
 
@@ -28,6 +30,8 @@ export const Dashboard: React.FC<DashboardProps> = ({
   onRefreshSingleEvent,
   onAnalyze,
   onOpenCalculator,
+  onOpenChart,
+  onOpenOrderBook,
   userTier
 }) => {
   const [draggedPlatform, setDraggedPlatform] = useState<Platform | null>(null);
@@ -90,6 +94,8 @@ export const Dashboard: React.FC<DashboardProps> = ({
             onAnalyze={onAnalyze}
             onRefreshSingleEvent={onRefreshSingleEvent}
             onOpenCalculator={onOpenCalculator}
+            onOpenChart={onOpenChart}
+            onOpenOrderBook={onOpenOrderBook}
             platformOrder={orderedPlatforms}
             userTier={userTier}
           />
@@ -199,6 +205,8 @@ export const Dashboard: React.FC<DashboardProps> = ({
                 onRefreshSingleEvent={onRefreshSingleEvent}
                 platformOrder={orderedPlatforms}
                 onOpenCalculator={onOpenCalculator}
+                onOpenChart={onOpenChart}
+                onOpenOrderBook={onOpenOrderBook}
                 userTier={userTier}
               />
             ))}

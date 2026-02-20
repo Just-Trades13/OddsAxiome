@@ -68,6 +68,10 @@ export const getSearchUrl = (platform: Platform, query: string): string => {
     return `https://limitless.exchange/markets`;
   }
 
+  if (platform === Platform.COINBASE) {
+    return `https://www.coinbase.com/predictions`;
+  }
+
   switch (platform) {
     case Platform.PREDICTIT:
       return `https://www.predictit.org/search?query=${q}`;

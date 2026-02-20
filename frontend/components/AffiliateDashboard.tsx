@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from 'react';
-import { Share2, Copy, Check, DollarSign, MousePointerClick, Users, TrendingUp, ArrowLeft, Loader2, Link2 } from 'lucide-react';
+import React, { useState, useEffect, useRef } from 'react';
+import { Share2, Copy, Check, DollarSign, MousePointerClick, Users, TrendingUp, ArrowLeft, Loader2, Link2, QrCode, Download } from 'lucide-react';
 import { clsx } from 'clsx';
 import { registerAffiliate, getAffiliateStats, getAffiliateConversions } from '../services/api.ts';
 
@@ -36,6 +36,8 @@ export const AffiliateDashboard: React.FC<AffiliateDashboardProps> = ({ onBack }
   const [error, setError] = useState<string | null>(null);
 
   const referralUrl = stats?.code ? `${window.location.origin}?ref=${stats.code}` : '';
+  const [showQR, setShowQR] = useState(false);
+  const qrUrl = referralUrl ? `https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${encodeURIComponent(referralUrl)}&bgcolor=0f172a&color=34d399&format=png` : '';
 
   useEffect(() => {
     loadStats();
@@ -177,10 +179,50 @@ export const AffiliateDashboard: React.FC<AffiliateDashboardProps> = ({ onBack }
                   {copied ? 'Copied' : 'Copy'}
                 </button>
               </div>
-              <p className="text-[10px] text-slate-600 font-medium mt-3">
-                Code: <span className="text-slate-400 font-bold">{stats.code}</span> &middot;
-                Commission Rate: <span className="text-emerald-400 font-bold">{(stats.commission_rate * 100).toFixed(0)}%</span>
-              </p>
+              <div className="flex items-center gap-3 mt-3">
+                <p className="text-[10px] text-slate-600 font-medium">
+                  Code: <span className="text-slate-400 font-bold">{stats.code}</span> &middot;
+                  Commission Rate: <span className="text-emerald-400 font-bold">{(stats.commission_rate * 100).toFixed(0)}%</span>
+                </p>
+                <button
+                  onClick={() => setShowQR(!showQR)}
+                  className={clsx(
+                    "flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-wider transition-all border",
+                    showQR
+                      ? "bg-emerald-500/20 text-emerald-400 border-emerald-500/40"
+                      : "bg-slate-800 hover:bg-slate-700 text-slate-400 border-slate-700"
+                  )}
+                >
+                  <QrCode className="w-3.5 h-3.5" />
+                  {showQR ? 'Hide QR' : 'QR Code'}
+                </button>
+              </div>
+
+              {showQR && qrUrl && (
+                <div className="mt-4 flex flex-col items-center gap-4 p-6 bg-slate-900 border border-slate-800 rounded-2xl">
+                  <div className="bg-white p-4 rounded-2xl shadow-xl">
+                    <img
+                      src={qrUrl}
+                      alt="Referral QR Code"
+                      className="w-[200px] h-[200px]"
+                      loading="eager"
+                    />
+                  </div>
+                  <p className="text-[10px] text-slate-500 font-medium text-center">
+                    Scan to visit your referral link
+                  </p>
+                  <a
+                    href={qrUrl}
+                    download={`oddsaxiom-referral-${stats.code}.png`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex items-center gap-2 px-4 py-2 bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-400 border border-emerald-500/30 rounded-xl text-[10px] font-black uppercase tracking-wider transition-all"
+                  >
+                    <Download className="w-3.5 h-3.5" />
+                    Download QR Code
+                  </a>
+                </div>
+              )}
             </div>
 
             {/* Stats Grid */}

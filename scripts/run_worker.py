@@ -17,6 +17,7 @@ AVAILABLE_WORKERS = {
     "coinbase": "src.workers.coinbase.CoinbaseWorker",
     "robinhood": "src.workers.robinhood.RobinhoodWorker",
     "limitless": "src.workers.limitless.LimitlessWorker",
+    "draftkings": "src.workers.draftkings.DraftKingsWorker",
 }
 
 
