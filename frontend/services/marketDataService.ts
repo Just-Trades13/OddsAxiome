@@ -22,11 +22,10 @@ const SLUG_TO_PLATFORM: Record<string, Platform> = {
   kalshi: Platform.KALSHI,
   predictit: Platform.PREDICTIT,
   draftkings: Platform.DRAFTKINGS,
-  theoddsapi: Platform.DRAFTKINGS,
-  gemini: Platform.GEMINI,
-  coinbase: Platform.COINBASE,
-  robinhood: Platform.ROBINHOOD,
-  limitless: Platform.LIMITLESS,
+  fanduel: Platform.FANDUEL,
+  betmgm: Platform.BETMGM,
+  bovada: Platform.BOVADA,
+  betrivers: Platform.BETRIVERS,
 };
 
 /** Map backend category string to frontend MarketCategory enum */

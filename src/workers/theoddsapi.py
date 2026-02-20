@@ -63,7 +63,7 @@ class TheOddsAPIWorker(BaseIngestionWorker):
                         "regions": "us",
                         "markets": "h2h",
                         "oddsFormat": "american",
-                        "bookmakers": "draftkings,fanduel",
+                        "bookmakers": "draftkings,fanduel,betmgm,bovada,betrivers",
                     },
                 )
 

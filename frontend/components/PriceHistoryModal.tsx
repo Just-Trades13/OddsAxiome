@@ -23,11 +23,11 @@ const PLATFORM_COLORS: Record<number, string> = {
   1: '#10b981', // Polymarket - emerald
   2: '#6366f1', // Kalshi - indigo
   3: '#f59e0b', // PredictIt - amber
-  4: '#06b6d4', // TheOddsAPI/DraftKings - cyan
-  5: '#8b5cf6', // Gemini - violet
-  6: '#3b82f6', // Coinbase - blue
-  7: '#f43f5e', // Robinhood - rose
-  8: '#ec4899', // Limitless - pink
+  4: '#06b6d4', // DraftKings - cyan
+  5: '#3b82f6', // FanDuel - blue
+  6: '#eab308', // BetMGM - yellow
+  7: '#f43f5e', // Bovada - rose
+  8: '#8b5cf6', // BetRivers - violet
 };
 
 export const PriceHistoryModal: React.FC<PriceHistoryModalProps> = ({ event, onClose, userTier, onUpgrade }) => {

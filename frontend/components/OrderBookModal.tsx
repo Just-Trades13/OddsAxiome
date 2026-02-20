@@ -14,10 +14,10 @@ const PLATFORM_COLORS: Record<string, { bg: string; text: string; border: string
   [Platform.KALSHI]: { bg: 'bg-indigo-500/10', text: 'text-indigo-400', border: 'border-indigo-500/20', bar: 'bg-indigo-500' },
   [Platform.PREDICTIT]: { bg: 'bg-amber-500/10', text: 'text-amber-400', border: 'border-amber-500/20', bar: 'bg-amber-500' },
   [Platform.DRAFTKINGS]: { bg: 'bg-cyan-500/10', text: 'text-cyan-400', border: 'border-cyan-500/20', bar: 'bg-cyan-500' },
-  [Platform.GEMINI]: { bg: 'bg-violet-500/10', text: 'text-violet-400', border: 'border-violet-500/20', bar: 'bg-violet-500' },
-  [Platform.COINBASE]: { bg: 'bg-blue-500/10', text: 'text-blue-400', border: 'border-blue-500/20', bar: 'bg-blue-500' },
-  [Platform.ROBINHOOD]: { bg: 'bg-rose-500/10', text: 'text-rose-400', border: 'border-rose-500/20', bar: 'bg-rose-500' },
-  [Platform.LIMITLESS]: { bg: 'bg-pink-500/10', text: 'text-pink-400', border: 'border-pink-500/20', bar: 'bg-pink-500' },
+  [Platform.FANDUEL]: { bg: 'bg-blue-500/10', text: 'text-blue-400', border: 'border-blue-500/20', bar: 'bg-blue-500' },
+  [Platform.BETMGM]: { bg: 'bg-yellow-500/10', text: 'text-yellow-400', border: 'border-yellow-500/20', bar: 'bg-yellow-500' },
+  [Platform.BOVADA]: { bg: 'bg-rose-500/10', text: 'text-rose-400', border: 'border-rose-500/20', bar: 'bg-rose-500' },
+  [Platform.BETRIVERS]: { bg: 'bg-violet-500/10', text: 'text-violet-400', border: 'border-violet-500/20', bar: 'bg-violet-500' },
 };
 
 const DEFAULT_COLORS = { bg: 'bg-slate-500/10', text: 'text-slate-400', border: 'border-slate-500/20', bar: 'bg-slate-500' };

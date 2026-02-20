@@ -47,11 +47,11 @@ export enum Platform {
   POLYMARKET = 'Polymarket',
   KALSHI = 'Kalshi',
   PREDICTIT = 'PredictIt',
-  ROBINHOOD = 'Robinhood',
-  COINBASE = 'Coinbase',
-  GEMINI = 'Gemini',
   DRAFTKINGS = 'DraftKings',
-  LIMITLESS = 'Limitless'
+  FANDUEL = 'FanDuel',
+  BETMGM = 'BetMGM',
+  BOVADA = 'Bovada',
+  BETRIVERS = 'BetRivers'
 }
 
 export interface Odd {

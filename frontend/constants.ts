@@ -2,25 +2,18 @@
 import { Platform } from './types.ts';
 
 /**
- * Updated default platform order:
- * 1. POLYMARKET
- * 2. KALSHI
- * 3. DRAFTKINGS
- * 4. GEMINI
- * 5. ROBINHOOD
- * 6. LIMITLESS
- * 7. COINBASE
- * 8. PREDICTIT
+ * Default platform column order:
+ * Prediction markets first, then sportsbooks
  */
 export const PLATFORMS = [
   Platform.POLYMARKET,
   Platform.KALSHI,
+  Platform.PREDICTIT,
   Platform.DRAFTKINGS,
-  Platform.GEMINI,
-  Platform.ROBINHOOD,
-  Platform.LIMITLESS,
-  Platform.COINBASE,
-  Platform.PREDICTIT
+  Platform.FANDUEL,
+  Platform.BETMGM,
+  Platform.BOVADA,
+  Platform.BETRIVERS,
 ];
 
 /**
@@ -52,32 +45,31 @@ export const getSearchUrl = (platform: Platform, query: string): string => {
     return `https://kalshi.com/search?query=${q}`;
   }
 
-  if (platform === Platform.GEMINI) {
-    return `https://exchange.gemini.com/predictions`;
-  }
-
   if (platform === Platform.DRAFTKINGS) {
-    return `https://predictions.draftkings.com/en/`;
+    return `https://sportsbook.draftkings.com/search?query=${q}`;
   }
 
-  if (platform === Platform.ROBINHOOD) {
-    return `https://robinhood.com/us/en/prediction-markets/`;
+  if (platform === Platform.FANDUEL) {
+    return `https://sportsbook.fanduel.com/search?q=${q}`;
   }
 
-  if (platform === Platform.LIMITLESS) {
-    return `https://limitless.exchange/markets`;
+  if (platform === Platform.BETMGM) {
+    return `https://sports.betmgm.com/en/sports`;
   }
 
-  if (platform === Platform.COINBASE) {
-    return `https://www.coinbase.com/predictions`;
+  if (platform === Platform.BOVADA) {
+    return `https://www.bovada.lv/sports`;
   }
 
-  switch (platform) {
-    case Platform.PREDICTIT:
-      return `https://www.predictit.org/search?query=${q}`;
-    default:
-      return `https://www.google.com/search?q=${q}+${platform}`;
+  if (platform === Platform.BETRIVERS) {
+    return `https://www.betrivers.com/sports`;
   }
+
+  if (platform === Platform.PREDICTIT) {
+    return `https://www.predictit.org/search?query=${q}`;
+  }
+
+  return `https://www.google.com/search?q=${q}+${platform}`;
 };
 
 export const calculateArb = (bestYes: number, bestNo: number): number => {
