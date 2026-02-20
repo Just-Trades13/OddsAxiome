@@ -8,9 +8,8 @@ COPY frontend/ .
 
 # Backend URL is same origin since we serve from the same container
 ENV VITE_BACKEND_URL=""
-# Gemini API key for AI analysis features (passed as build arg from Railway)
-ARG GEMINI_API_KEY=""
-ENV GEMINI_API_KEY=${GEMINI_API_KEY}
+# Gemini API key for AI analysis features (client-side, public like Firebase key)
+ENV GEMINI_API_KEY=AIzaSyBS8jjxtW-mnG82oOKACryXCfMwjUGB9pk
 RUN npm run build
 
 ### Stage 2: Python API ###
