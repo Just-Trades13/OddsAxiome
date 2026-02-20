@@ -37,6 +37,7 @@ async def auth_sync(
         display_name=claims.get("name"),
         photo_url=claims.get("picture"),
         ref_code=body.ref_code if body else None,
+        first_name=body.first_name if body else None,
     )
 
     return user

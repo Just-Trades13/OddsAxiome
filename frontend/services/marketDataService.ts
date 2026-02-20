@@ -26,6 +26,7 @@ const SLUG_TO_PLATFORM: Record<string, Platform> = {
   betmgm: Platform.BETMGM,
   bovada: Platform.BOVADA,
   betrivers: Platform.BETRIVERS,
+  gemini: Platform.GEMINI,
 };
 
 /** Map backend category string to frontend MarketCategory enum */

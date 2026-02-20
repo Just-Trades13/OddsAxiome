@@ -51,7 +51,8 @@ export enum Platform {
   FANDUEL = 'FanDuel',
   BETMGM = 'BetMGM',
   BOVADA = 'Bovada',
-  BETRIVERS = 'BetRivers'
+  BETRIVERS = 'BetRivers',
+  GEMINI = 'Gemini'
 }
 
 export interface Odd {

@@ -27,7 +27,6 @@ async def update_me(
     updated = await update_user(
         db=db,
         user=user,
-        display_name=body.display_name,
-        photo_url=body.photo_url,
+        **body.model_dump(exclude_none=True),
     )
     return updated

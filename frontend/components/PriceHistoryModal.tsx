@@ -29,12 +29,13 @@ const SLUG_COLORS: Record<string, string> = {
   betmgm: '#eab308',
   bovada: '#f43f5e',
   betrivers: '#8b5cf6',
+  gemini: '#14b8a6',
 };
 
 const SLUG_NAMES: Record<string, string> = {
   polymarket: 'Polymarket', kalshi: 'Kalshi', predictit: 'PredictIt',
   draftkings: 'DraftKings', fanduel: 'FanDuel', betmgm: 'BetMGM',
-  bovada: 'Bovada', betrivers: 'BetRivers',
+  bovada: 'Bovada', betrivers: 'BetRivers', gemini: 'Gemini',
 };
 
 // Fallback for older data that only has platform_id

@@ -159,6 +159,7 @@ class KalshiWorker(BaseIngestionWorker):
                         continue
 
                     event_count += 1
+                    series_ticker = event.get("series_ticker", "").lower()
 
                     # Count how many markets share each title.  When
                     # multiple candidates share a generic title (e.g.
@@ -208,7 +209,7 @@ class KalshiWorker(BaseIngestionWorker):
                                 bid=_safe_float(market.get("yes_bid")),
                                 ask=_safe_float(market.get("yes_ask")),
                                 volume_24h=_safe_float(market.get("volume_24h")),
-                                market_url=f"https://kalshi.com/markets/{ticker}",
+                                market_url=f"https://kalshi.com/markets/{series_ticker or ticker.lower()}",
                                 outcomes_json=outcomes_json,
                             )
                         )
@@ -227,7 +228,7 @@ class KalshiWorker(BaseIngestionWorker):
                                     bid=_safe_float(market.get("no_bid")),
                                     ask=_safe_float(market.get("no_ask")),
                                     volume_24h=_safe_float(market.get("volume_24h")),
-                                    market_url=f"https://kalshi.com/markets/{ticker}",
+                                    market_url=f"https://kalshi.com/markets/{series_ticker or ticker.lower()}",
                                     outcomes_json=outcomes_json,
                                 )
                             )

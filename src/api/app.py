@@ -22,6 +22,7 @@ _WORKER_MAP = {
     "kalshi": "src.workers.kalshi.KalshiWorker",
     "predictit": "src.workers.predictit.PredictItWorker",
     "theoddsapi": "src.workers.theoddsapi.TheOddsAPIWorker",
+    "gemini": "src.workers.gemini.GeminiWorker",
 }
 
 
@@ -31,7 +32,7 @@ def _start_workers(redis) -> list[asyncio.Task]:
     Active sources: Polymarket, PredictIt (free), Kalshi, TheOddsAPI (keyed).
     TheOddsAPI covers DraftKings, FanDuel, BetMGM, Bovada, BetRivers.
     """
-    sources = ["polymarket", "predictit"]
+    sources = ["polymarket", "predictit", "gemini"]
 
     if settings.kalshi_api_key:
         sources.append("kalshi")
@@ -90,7 +91,7 @@ async def lifespan(app: FastAPI):
     PLATFORM_SLUG_TO_ID = {
         "polymarket": 1, "kalshi": 2, "predictit": 3,
         "draftkings": 4, "fanduel": 5, "betmgm": 6,
-        "bovada": 7, "betrivers": 8,
+        "bovada": 7, "betrivers": 8, "gemini": 9,
     }
 
     async def _snapshot_odds():

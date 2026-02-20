@@ -14,6 +14,7 @@ export const PLATFORMS = [
   Platform.BETMGM,
   Platform.BOVADA,
   Platform.BETRIVERS,
+  Platform.GEMINI,
 ];
 
 /**
@@ -67,6 +68,10 @@ export const getSearchUrl = (platform: Platform, query: string): string => {
 
   if (platform === Platform.PREDICTIT) {
     return `https://www.predictit.org/search?query=${q}`;
+  }
+
+  if (platform === Platform.GEMINI) {
+    return `https://www.gemini.com/predictions`;
   }
 
   return `https://www.google.com/search?q=${q}+${platform}`;

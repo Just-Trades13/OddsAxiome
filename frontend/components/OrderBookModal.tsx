@@ -18,6 +18,7 @@ const PLATFORM_COLORS: Record<string, { bg: string; text: string; border: string
   [Platform.BETMGM]: { bg: 'bg-yellow-500/10', text: 'text-yellow-400', border: 'border-yellow-500/20', bar: 'bg-yellow-500' },
   [Platform.BOVADA]: { bg: 'bg-rose-500/10', text: 'text-rose-400', border: 'border-rose-500/20', bar: 'bg-rose-500' },
   [Platform.BETRIVERS]: { bg: 'bg-violet-500/10', text: 'text-violet-400', border: 'border-violet-500/20', bar: 'bg-violet-500' },
+  [Platform.GEMINI]: { bg: 'bg-teal-500/10', text: 'text-teal-400', border: 'border-teal-500/20', bar: 'bg-teal-500' },
 };
 
 const DEFAULT_COLORS = { bg: 'bg-slate-500/10', text: 'text-slate-400', border: 'border-slate-500/20', bar: 'bg-slate-500' };
