@@ -75,6 +75,160 @@ async def lifespan(app: FastAPI):
     except Exception as e:
         logger.error("Failed to start workers", error=str(e))
 
+    # Start arbitrage engine as background task
+    arb_task = None
+    try:
+        from src.arbengine.engine import ArbEngine
+        arb_engine = ArbEngine(redis_pool=redis, config=settings)
+        arb_task = asyncio.create_task(arb_engine.run(), name="arb-engine")
+        logger.info("Arbitrage engine started")
+    except Exception as e:
+        logger.warning("Could not start arb engine", error=str(e))
+
+    # Background odds snapshot writer: samples Redis live data every 5 minutes
+    # and persists to PostgreSQL for historical price charts.
+    PLATFORM_SLUG_TO_ID = {
+        "polymarket": 1, "kalshi": 2, "predictit": 3,
+        "draftkings": 4, "fanduel": 5, "betmgm": 6,
+        "bovada": 7, "betrivers": 8,
+    }
+
+    async def _snapshot_odds():
+        from src.core.database import async_session_factory
+        await asyncio.sleep(120)  # Wait for workers to publish initial data
+        while True:
+            try:
+                keys: list[str] = []
+                async for key in redis.scan_iter(match="odds:live:*", count=500):
+                    keys.append(key if isinstance(key, str) else key.decode())
+
+                if not keys:
+                    await asyncio.sleep(300)
+                    continue
+
+                # Pipeline all HGETALL calls
+                pipe = redis.pipeline()
+                for key in keys:
+                    pipe.hgetall(key)
+                all_data = await pipe.execute()
+
+                rows = []
+                for key, data in zip(keys, all_data):
+                    if not data:
+                        continue
+                    parts = key.split(":", 3)
+                    market_id = parts[3] if len(parts) > 3 else ""
+                    platform_slug = data.get("platform", "")
+                    platform_id = PLATFORM_SLUG_TO_ID.get(platform_slug, 0)
+
+                    # Collect outcomes
+                    i = 0
+                    while f"outcome_{i}_name" in data:
+                        name = data.get(f"outcome_{i}_name", "")
+                        price_str = data.get(f"outcome_{i}_price", "0")
+                        implied_str = data.get(f"outcome_{i}_implied", "0")
+                        try:
+                            price = float(price_str)
+                            implied = float(implied_str)
+                        except (ValueError, TypeError):
+                            i += 1
+                            continue
+                        if implied <= 0:
+                            i += 1
+                            continue
+                        rows.append({
+                            "market_id": market_id,
+                            "platform_id": platform_id,
+                            "platform_slug": platform_slug,
+                            "outcome_index": i,
+                            "outcome_name": name,
+                            "price": price,
+                            "implied_prob": implied,
+                        })
+                        i += 1
+
+                if rows:
+                    # Batch insert via raw SQL for performance
+                    async with async_session_factory() as session:
+                        from sqlalchemy import text
+                        insert_sql = text("""
+                            INSERT INTO odds_snapshots
+                            (market_id, platform_id, platform_slug, outcome_index, outcome_name, price, implied_prob)
+                            VALUES (:market_id, :platform_id, :platform_slug, :outcome_index, :outcome_name, :price, :implied_prob)
+                        """)
+                        # Insert in batches of 500
+                        for batch_start in range(0, len(rows), 500):
+                            batch = rows[batch_start:batch_start + 500]
+                            await session.execute(insert_sql, batch)
+                        await session.commit()
+                    logger.info("Odds snapshots saved", count=len(rows))
+                else:
+                    logger.debug("No odds data to snapshot")
+            except Exception as e:
+                logger.warning("Snapshot writer error", error=str(e))
+            await asyncio.sleep(300)  # Every 5 minutes
+
+    snapshot_task = asyncio.create_task(_snapshot_odds(), name="snapshot-writer")
+
+    # Background notification producer: subscribes to arb alerts and pushes
+    # notifications to all pro users' Redis lists.
+    async def _notification_producer():
+        import orjson
+        from src.core.database import async_session_factory
+        from sqlalchemy import text
+        await asyncio.sleep(30)  # Wait for arb engine to start
+        pubsub = redis.pubsub()
+        await pubsub.subscribe("arb:alerts")
+        logger.info("Notification producer subscribed to arb:alerts")
+        try:
+            async for message in pubsub.listen():
+                if message["type"] != "message":
+                    continue
+                try:
+                    alert = orjson.loads(message["data"])
+                    arb_data = alert.get("data", {})
+                    profit = arb_data.get("expected_profit", 0)
+                    if profit < 0.005:  # Only notify for >0.5% arbs
+                        continue
+
+                    title = arb_data.get("market_title", "Unknown market")
+                    legs = arb_data.get("legs", [])
+                    leg_summary = " vs ".join(
+                        f"{leg['platform']} ({leg['outcome_name']})"
+                        for leg in legs[:2]
+                    )
+                    notification = orjson.dumps({
+                        "type": "arb_alert",
+                        "title": f"Arb: {profit:.2%} profit",
+                        "body": f"{title[:80]} — {leg_summary}",
+                        "data": arb_data,
+                        "created_at": arb_data.get("detected_at"),
+                    }).decode()
+
+                    # Get all pro user IDs
+                    async with async_session_factory() as session:
+                        result = await session.execute(
+                            text("SELECT id FROM users WHERE tier = 'pro' AND is_active = true")
+                        )
+                        user_ids = [str(row[0]) for row in result.fetchall()]
+
+                    if user_ids:
+                        pipe = redis.pipeline()
+                        for uid in user_ids:
+                            pipe.lpush(f"notifications:{uid}", notification)
+                            pipe.ltrim(f"notifications:{uid}", 0, 49)  # Keep last 50
+                            pipe.incr(f"notifications:{uid}:unread")
+                        await pipe.execute()
+                        logger.info("Arb notification sent", users=len(user_ids), profit=f"{profit:.2%}")
+                except Exception as e:
+                    logger.warning("Notification producer error", error=str(e))
+        except asyncio.CancelledError:
+            pass
+        finally:
+            await pubsub.unsubscribe("arb:alerts")
+
+    notif_task = asyncio.create_task(_notification_producer(), name="notification-producer")
+
     # Background cache warmer: pre-builds the expensive odds response every 90s
     # so user requests always hit the fast cache path.
     async def _warm_odds_cache():
@@ -94,12 +248,15 @@ async def lifespan(app: FastAPI):
 
     yield
 
-    # Shutdown — cancel workers + cache warmer, then close redis
-    cache_task.cancel()
+    # Shutdown — cancel all background tasks then close redis
+    for t in [cache_task, snapshot_task, notif_task]:
+        t.cancel()
+    if arb_task:
+        arb_task.cancel()
     for task in worker_tasks:
         task.cancel()
-    if worker_tasks:
-        await asyncio.gather(*worker_tasks, return_exceptions=True)
+    all_tasks = [t for t in [*worker_tasks, arb_task, cache_task, snapshot_task, notif_task] if t]
+    await asyncio.gather(*all_tasks, return_exceptions=True)
     await close_redis()
     logger.info("OddsAxiom API shutdown complete")
 

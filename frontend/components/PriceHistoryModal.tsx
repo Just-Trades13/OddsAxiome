@@ -16,19 +16,42 @@ interface HistoryPoint {
   price: number;
   implied_prob: number;
   platform_id: number;
+  platform_slug?: string;
   outcome_name: string;
 }
 
-const PLATFORM_COLORS: Record<number, string> = {
-  1: '#10b981', // Polymarket - emerald
-  2: '#6366f1', // Kalshi - indigo
-  3: '#f59e0b', // PredictIt - amber
-  4: '#06b6d4', // DraftKings - cyan
-  5: '#3b82f6', // FanDuel - blue
-  6: '#eab308', // BetMGM - yellow
-  7: '#f43f5e', // Bovada - rose
-  8: '#8b5cf6', // BetRivers - violet
+const SLUG_COLORS: Record<string, string> = {
+  polymarket: '#10b981',
+  kalshi: '#6366f1',
+  predictit: '#f59e0b',
+  draftkings: '#06b6d4',
+  fanduel: '#3b82f6',
+  betmgm: '#eab308',
+  bovada: '#f43f5e',
+  betrivers: '#8b5cf6',
 };
+
+const SLUG_NAMES: Record<string, string> = {
+  polymarket: 'Polymarket', kalshi: 'Kalshi', predictit: 'PredictIt',
+  draftkings: 'DraftKings', fanduel: 'FanDuel', betmgm: 'BetMGM',
+  bovada: 'Bovada', betrivers: 'BetRivers',
+};
+
+// Fallback for older data that only has platform_id
+const PLATFORM_COLORS: Record<number, string> = {
+  1: '#10b981', 2: '#6366f1', 3: '#f59e0b',
+  4: '#06b6d4', 5: '#3b82f6', 6: '#eab308',
+  7: '#f43f5e', 8: '#8b5cf6',
+};
+
+const getPlatformColor = (p: HistoryPoint): string =>
+  (p.platform_slug && SLUG_COLORS[p.platform_slug]) || PLATFORM_COLORS[p.platform_id] || '#94a3b8';
+
+const getPlatformKey = (p: HistoryPoint): string =>
+  p.platform_slug || String(p.platform_id);
+
+const getPlatformName = (p: HistoryPoint): string =>
+  (p.platform_slug && SLUG_NAMES[p.platform_slug]) || `Platform ${p.platform_id}`;
 
 export const PriceHistoryModal: React.FC<PriceHistoryModalProps> = ({ event, onClose, userTier, onUpgrade }) => {
   const [loading, setLoading] = useState(true);
@@ -89,12 +112,13 @@ export const PriceHistoryModal: React.FC<PriceHistoryModalProps> = ({ event, onC
     ctx.fillStyle = '#0f172a';
     ctx.fillRect(0, 0, w, h);
 
-    // Group by platform
-    const byPlatform = new Map<number, HistoryPoint[]>();
+    // Group by platform (use slug if available, else platform_id)
+    const byPlatform = new Map<string, HistoryPoint[]>();
     for (const p of history) {
-      const arr = byPlatform.get(p.platform_id) || [];
+      const key = getPlatformKey(p);
+      const arr = byPlatform.get(key) || [];
       arr.push(p);
-      byPlatform.set(p.platform_id, arr);
+      byPlatform.set(key, arr);
     }
 
     // Time range
@@ -139,11 +163,12 @@ export const PriceHistoryModal: React.FC<PriceHistoryModalProps> = ({ event, onC
     }
 
     // Draw lines per platform
-    byPlatform.forEach((points, platformId) => {
+    byPlatform.forEach((points, platformKey) => {
       const sorted = [...points].sort((a, b) => new Date(a.captured_at).getTime() - new Date(b.captured_at).getTime());
       if (sorted.length < 2) return;
 
-      ctx.strokeStyle = PLATFORM_COLORS[platformId] || '#94a3b8';
+      const color = getPlatformColor(sorted[0]);
+      ctx.strokeStyle = color;
       ctx.lineWidth = 2;
       ctx.beginPath();
 
@@ -162,7 +187,7 @@ export const PriceHistoryModal: React.FC<PriceHistoryModalProps> = ({ event, onC
       const ly = padding.top + (1 - last.implied_prob) * chartH;
       ctx.beginPath();
       ctx.arc(lx, ly, 4, 0, Math.PI * 2);
-      ctx.fillStyle = PLATFORM_COLORS[platformId] || '#94a3b8';
+      ctx.fillStyle = color;
       ctx.fill();
     });
   }
@@ -252,17 +277,20 @@ export const PriceHistoryModal: React.FC<PriceHistoryModalProps> = ({ event, onC
 
                   {/* Legend */}
                   <div className="flex flex-wrap gap-3 mt-4">
-                    {Array.from(new Set(history.map(h => h.platform_id))).map((pid) => (
-                      <div key={pid} className="flex items-center gap-1.5">
-                        <div
-                          className="w-3 h-3 rounded-full"
-                          style={{ backgroundColor: PLATFORM_COLORS[pid] || '#94a3b8' }}
-                        />
-                        <span className="text-[10px] font-bold text-slate-400">
-                          Platform {pid}
-                        </span>
-                      </div>
-                    ))}
+                    {Array.from(new Set(history.map(h => getPlatformKey(h)))).map((key) => {
+                      const sample = history.find(h => getPlatformKey(h) === key)!;
+                      return (
+                        <div key={key} className="flex items-center gap-1.5">
+                          <div
+                            className="w-3 h-3 rounded-full"
+                            style={{ backgroundColor: getPlatformColor(sample) }}
+                          />
+                          <span className="text-[10px] font-bold text-slate-400">
+                            {getPlatformName(sample)}
+                          </span>
+                        </div>
+                      );
+                    })}
                   </div>
 
                   <p className="text-[10px] text-slate-600 font-medium mt-3 flex items-center gap-1.5">

@@ -13,9 +13,10 @@ interface OddsRowProps {
   onOpenChart: (event: MarketEvent) => void;
   onOpenOrderBook: (event: MarketEvent) => void;
   userTier: UserTier;
+  gridTemplate?: string;
 }
 
-export const OddsRow: React.FC<OddsRowProps> = ({ event, onAnalyze, onRefreshSingleEvent, platformOrder, onOpenCalculator, onOpenChart, onOpenOrderBook, userTier }) => {
+export const OddsRow: React.FC<OddsRowProps> = ({ event, onAnalyze, onRefreshSingleEvent, platformOrder, onOpenCalculator, onOpenChart, onOpenOrderBook, userTier, gridTemplate }) => {
   const isFree = userTier === 'free';
   const isArb = !!event.arbPercent && event.arbPercent > 0;
   const lines = event.lines || [];
@@ -65,9 +66,9 @@ export const OddsRow: React.FC<OddsRowProps> = ({ event, onAnalyze, onRefreshSin
 
   return (
     <div className={clsx(
-      "grid grid-cols-[380px_85px_85px_85px_repeat(8,1fr)] hover:bg-slate-800/30 transition-colors group relative border-b border-slate-800/50 last:border-0",
+      "hover:bg-slate-800/30 transition-colors group relative border-b border-slate-800/50 last:border-0",
       isArb && "bg-emerald-500/[0.04]"
-    )}>
+    )} style={{ display: 'grid', gridTemplateColumns: gridTemplate || `380px 85px 85px 85px repeat(${platformOrder.length}, 1fr)` }}>
       {/* Event Info */}
       <div className="p-4 flex flex-col justify-center border-r border-slate-800/50">
         <div className="flex justify-between items-start mb-2 gap-2">

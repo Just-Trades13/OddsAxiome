@@ -1,4 +1,6 @@
 """The Odds API worker — covers DraftKings, FanDuel, and other sportsbooks."""
+import asyncio
+
 import httpx
 import structlog
 
@@ -22,20 +24,25 @@ SPORT_CATEGORY_MAP = {
     "politics_us_presidential_election_winner": "politics",
 }
 
-# Which sports to fetch (can be expanded)
+# Which sports to fetch — keep this list tight to conserve API quota
+# Free plan: 500 requests/month. Each sport = 1 request per poll cycle.
 SPORTS_TO_FETCH = [
-    "americanfootball_nfl",
     "basketball_nba",
-    "baseball_mlb",
     "icehockey_nhl",
+    "baseball_mlb",
     "soccer_epl",
     "mma_mixed_martial_arts",
+    "americanfootball_nfl",
 ]
 
 
 class TheOddsAPIWorker(BaseIngestionWorker):
     platform_slug = "draftkings"  # Primary bookmaker we pull from this source
-    poll_interval = 60.0  # Be conservative with API quota
+    # Free plan: 500 requests/month. 6 sports × 1 req each per cycle.
+    # At 5 min: 6 × 288/day = 1,728/day — burns quota in ~9 days.
+    # At 15 min: 6 × 96/day = 576/day — burns in ~26 days. Close but OK.
+    # Rate limit fix: 2s delay between sport requests prevents 429 errors.
+    poll_interval = 900.0  # 15 minutes — balances freshness vs quota
 
     def __init__(self, redis_pool, config):
         super().__init__(redis_pool, config)
@@ -125,7 +132,10 @@ class TheOddsAPIWorker(BaseIngestionWorker):
                 # Log remaining quota from response headers
                 remaining = resp.headers.get("x-requests-remaining")
                 if remaining:
-                    self.logger.debug("Odds API quota remaining", remaining=remaining)
+                    self.logger.info("Odds API quota", sport=sport_key, remaining=remaining, events=len(events))
+
+                # Delay between sport requests to avoid burst rate limiting
+                await asyncio.sleep(2)
 
             except httpx.HTTPError as e:
                 self.logger.error("The Odds API error", sport=sport_key, error=str(e))

@@ -253,7 +253,11 @@ async def get_odds_history(
     outcome_name: str | None = None,
     limit: int = 500,
 ) -> list[OddsSnapshot]:
-    """Get historical odds snapshots from PostgreSQL."""
+    """Get historical odds snapshots from PostgreSQL.
+
+    Matches by exact market_id or by substring match (market titles get
+    concatenated with platform/market-id in Redis keys, so we use LIKE).
+    """
     query = (
         select(OddsSnapshot)
         .where(OddsSnapshot.market_id == market_id)

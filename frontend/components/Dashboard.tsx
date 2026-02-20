@@ -36,6 +36,23 @@ export const Dashboard: React.FC<DashboardProps> = ({
 }) => {
   const [draggedPlatform, setDraggedPlatform] = useState<Platform | null>(null);
 
+  // Auto-hide platforms that have zero data across all displayed events
+  const visiblePlatforms = React.useMemo(() => {
+    const platformsWithData = new Set<Platform>();
+    for (const event of events) {
+      for (const line of event.lines || []) {
+        platformsWithData.add(line.platform);
+      }
+    }
+    const filtered = orderedPlatforms.filter(p => platformsWithData.has(p));
+    // Fall back to all platforms if no events loaded yet
+    return filtered.length > 0 ? filtered : orderedPlatforms;
+  }, [events, orderedPlatforms]);
+
+  const colCount = visiblePlatforms.length;
+  const gridTemplate = `380px 85px 85px 85px repeat(${colCount}, 1fr)`;
+  const minTableWidth = 380 + 85 * 3 + colCount * 120;
+
   const handleDragStart = (platform: Platform) => {
     setDraggedPlatform(platform);
   };
@@ -109,9 +126,9 @@ export const Dashboard: React.FC<DashboardProps> = ({
 
       {/* Desktop View: Comparison Table */}
       <div className="hidden md:flex flex-col border border-slate-700/50 rounded-2xl bg-slate-900 shadow-2xl overflow-x-auto">
-        <div className="min-w-[1550px]">
-          {/* Table Header - Updated for 8 platforms */}
-          <div className="grid grid-cols-[380px_85px_85px_85px_repeat(8,1fr)] bg-slate-950 border-b border-slate-800 sticky top-0 z-30 shadow-md">
+        <div style={{ minWidth: `${minTableWidth}px` }}>
+          {/* Table Header - Dynamic columns based on active platforms */}
+          <div className="bg-slate-950 border-b border-slate-800 sticky top-0 z-30 shadow-md" style={{ display: 'grid', gridTemplateColumns: gridTemplate }}>
             <div className="p-4 text-xs font-black text-slate-400 uppercase tracking-widest flex items-center justify-between group/event">
               <span className="flex items-center gap-2">
                 <Info className="w-3.5 h-3.5 text-slate-600" />
@@ -175,7 +192,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
               </div>
             </div>
 
-            {orderedPlatforms.map(p => (
+            {visiblePlatforms.map(p => (
               <div 
                 key={p} 
                 draggable
@@ -203,11 +220,12 @@ export const Dashboard: React.FC<DashboardProps> = ({
                 event={event}
                 onAnalyze={onAnalyze}
                 onRefreshSingleEvent={onRefreshSingleEvent}
-                platformOrder={orderedPlatforms}
+                platformOrder={visiblePlatforms}
                 onOpenCalculator={onOpenCalculator}
                 onOpenChart={onOpenChart}
                 onOpenOrderBook={onOpenOrderBook}
                 userTier={userTier}
+                gridTemplate={gridTemplate}
               />
             ))}
             {events.length === 0 && (

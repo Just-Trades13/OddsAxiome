@@ -48,6 +48,7 @@ async def odds_history(
             "price": float(s.price),
             "implied_prob": float(s.implied_prob),
             "platform_id": s.platform_id,
+            "platform_slug": s.platform_slug,
             "outcome_name": s.outcome_name,
         }
         for s in snapshots

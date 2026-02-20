@@ -1,7 +1,4 @@
-import uuid
-
 from sqlalchemy import DateTime, Integer, Numeric, SmallInteger, String
-from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import Mapped, mapped_column
 
 from src.models.base import Base
@@ -11,8 +8,9 @@ class OddsSnapshot(Base):
     __tablename__ = "odds_snapshots"
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
-    market_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), nullable=False, index=True)
+    market_id: Mapped[str] = mapped_column(String(300), nullable=False, index=True)
     platform_id: Mapped[int] = mapped_column(Integer, nullable=False)
+    platform_slug: Mapped[str | None] = mapped_column(String(50))
     outcome_index: Mapped[int] = mapped_column(SmallInteger, nullable=False)
     outcome_name: Mapped[str] = mapped_column(String(200), nullable=False)
     price: Mapped[float] = mapped_column(Numeric(8, 6), nullable=False)
