@@ -10,6 +10,15 @@ logger = structlog.get_logger()
 
 THE_ODDS_API_BASE = "https://api.the-odds-api.com/v4"
 
+# Base URLs for sportsbook search pages — The Odds API doesn't provide deep links
+SPORTSBOOK_URLS = {
+    "draftkings": "https://sportsbook.draftkings.com",
+    "fanduel": "https://sportsbook.fanduel.com",
+    "betmgm": "https://sports.betmgm.com",
+    "bovada": "https://www.bovada.lv",
+    "betrivers": "https://www.betrivers.com",
+}
+
 # Sports keys from The Odds API that map to our categories
 SPORT_CATEGORY_MAP = {
     "americanfootball_nfl": "sports",
@@ -123,7 +132,7 @@ class TheOddsAPIWorker(BaseIngestionWorker):
                                         price=float(price),
                                         price_format=price_format,
                                         outcome_type="moneyline",
-                                        market_url=None,
+                                        market_url=SPORTSBOOK_URLS.get(bk_key),
                                         outcomes_json=outcomes_json,
                                     )
                                 )

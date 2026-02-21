@@ -5,14 +5,31 @@ from contextlib import asynccontextmanager
 from pathlib import Path
 
 import structlog
-from fastapi import FastAPI
+from fastapi import FastAPI, Request, Response
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.middleware.gzip import GZipMiddleware
 from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
+from starlette.middleware.base import BaseHTTPMiddleware
 
 from src.core.config import settings
 from src.core.redis import close_redis, init_redis
 from src.core.security import init_firebase
+
+
+class SecurityHeadersMiddleware(BaseHTTPMiddleware):
+    """Add security headers to all responses."""
+
+    async def dispatch(self, request: Request, call_next):
+        response: Response = await call_next(request)
+        response.headers["X-Content-Type-Options"] = "nosniff"
+        response.headers["X-Frame-Options"] = "DENY"
+        response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
+        response.headers["X-XSS-Protection"] = "1; mode=block"
+        response.headers["Permissions-Policy"] = "camera=(), microphone=(), geolocation=()"
+        if request.url.scheme == "https":
+            response.headers["Strict-Transport-Security"] = "max-age=31536000; includeSubDomains"
+        return response
 
 logger = structlog.get_logger()
 
@@ -234,12 +251,13 @@ async def lifespan(app: FastAPI):
     # so user requests always hit the fast cache path.
     async def _warm_odds_cache():
         from src.services.odds_service import get_all_live_odds
-        await asyncio.sleep(60)  # wait for workers to publish first batch
+        await asyncio.sleep(15)  # short delay for workers to publish first batch
         categories = [None, "politics", "economics", "crypto", "science", "culture", "sports"]
         while True:
             try:
                 for cat in categories:
-                    await get_all_live_odds(redis, page=1, per_page=1, category=cat)
+                    # Warm with full default page size (50) so user requests hit cache
+                    await get_all_live_odds(redis, page=1, per_page=50, category=cat)
                 logger.debug("Odds response cache warmed")
             except Exception as e:
                 logger.warning("Cache warm failed", error=str(e))
@@ -269,6 +287,12 @@ def create_app() -> FastAPI:
         description="Prediction market analytics backend",
         lifespan=lifespan,
     )
+
+    # GZip compression — compress responses >500 bytes (JS bundle 967KB → ~200KB)
+    app.add_middleware(GZipMiddleware, minimum_size=500)
+
+    # Security headers on all responses
+    app.add_middleware(SecurityHeadersMiddleware)
 
     app.add_middleware(
         CORSMiddleware,

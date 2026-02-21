@@ -1,4 +1,12 @@
-"""Market browsing and search endpoints."""
+"""Market browsing and search endpoints.
+
+The PostgreSQL markets table is not yet populated — all live data comes from
+Redis via the /odds endpoints.  These endpoints query PostgreSQL and will
+return empty results until a backfill is implemented.  The /{market_id}
+endpoint gracefully returns 404 instead of crashing on invalid UUIDs.
+"""
+from uuid import UUID
+
 from fastapi import APIRouter, Depends, Query
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -54,9 +62,15 @@ async def trending_markets(db: AsyncSession = Depends(get_db)):
     return [MarketResponse.model_validate(m) for m in markets]
 
 
-@router.get("/{market_id}", response_model=MarketResponse)
+@router.get("/{market_id}")
 async def get_market(market_id: str, db: AsyncSession = Depends(get_db)):
     """Get a single market by ID."""
+    # Validate UUID format to prevent SQLAlchemy crash
+    try:
+        UUID(market_id)
+    except (ValueError, AttributeError):
+        raise NotFoundError("Market not found")
+
     market = await get_market_by_id(db, market_id)
     if not market:
         raise NotFoundError("Market not found")
