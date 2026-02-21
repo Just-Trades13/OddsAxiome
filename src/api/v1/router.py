@@ -1,6 +1,7 @@
 from fastapi import APIRouter
 
 from src.api.v1.admin import router as admin_router
+from src.api.v1.analysis import router as analysis_router
 from src.api.v1.affiliates import router as affiliates_router
 from src.api.v1.arbitrage import router as arbitrage_router
 from src.api.v1.auth import router as auth_router
@@ -24,4 +25,5 @@ v1_router.include_router(affiliates_router, prefix="/affiliates", tags=["affilia
 v1_router.include_router(webhooks_router, prefix="/webhooks", tags=["webhooks"])
 v1_router.include_router(notifications_router, prefix="/notifications", tags=["notifications"])
 v1_router.include_router(admin_router, prefix="/admin", tags=["admin"])
+v1_router.include_router(analysis_router, prefix="/analysis", tags=["analysis"])
 v1_router.include_router(ws_router, tags=["websocket"])

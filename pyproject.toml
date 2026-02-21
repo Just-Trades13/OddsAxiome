@@ -33,6 +33,9 @@ dependencies = [
     "kalshi-python>=2.1.0",
     "httpx>=0.28.0",
 
+    # Google AI (Gemini)
+    "google-genai>=1.0.0",
+
     # Data Processing
     "pydantic>=2.10.0",
     "pydantic-settings>=2.7.0",

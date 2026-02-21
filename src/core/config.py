@@ -27,6 +27,9 @@ class Settings(BaseSettings):
     # HubSpot
     hubspot_access_token: str = ""
 
+    # Google AI (Gemini model for market analysis)
+    google_ai_api_key: str = ""
+
     # Data Source API Keys
     kalshi_api_key: str = ""
     kalshi_private_key_path: str = ""

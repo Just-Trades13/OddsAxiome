@@ -15,8 +15,6 @@ export default defineConfig(({ mode }) => {
       },
       plugins: [react()],
       define: {
-        'process.env.API_KEY': JSON.stringify(env.GEMINI_API_KEY || process.env.GEMINI_API_KEY || ''),
-        'process.env.GEMINI_API_KEY': JSON.stringify(env.GEMINI_API_KEY || process.env.GEMINI_API_KEY || ''),
         // In production builds (served by the API on same origin) use '' for relative URLs.
         // In dev mode, point to the local API server.
         'process.env.VITE_BACKEND_URL': JSON.stringify(
