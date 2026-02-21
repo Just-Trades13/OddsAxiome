@@ -166,16 +166,8 @@ export const searchMarketsByQuery = async (query: string): Promise<MarketEvent[]
     const response = await withTimeout(apiPromise, 15000);
     const items = Array.isArray(response) ? response : (response.data || response.items || []);
     if (items.length > 0) {
-      // Markets endpoint returns different shape — transform it
-      const events = items.map((m: any, idx: number) => ({
-        market_id: m.id,
-        market_title: m.title,
-        category: m.category,
-        description: m.description,
-        end_date: m.end_date,
-        platforms: [], // No live odds in market list
-      }));
-      return transformBackendOdds(events, MarketCategory.POLITICS);
+      // /markets now returns the same shape as /odds/live (Redis-backed)
+      return transformBackendOdds(items, MarketCategory.POLITICS);
     }
   } catch (err: any) {
     console.debug("Backend search unavailable:", err.message);
