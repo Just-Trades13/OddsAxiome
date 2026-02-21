@@ -16,6 +16,7 @@ import { Footer } from './components/Footer.tsx';
 import { AuthModal } from './components/AuthModal.tsx';
 import { AdminPortal } from './components/AdminPortal.tsx';
 import { AffiliateDashboard } from './components/AffiliateDashboard.tsx';
+import { LandingPage } from './components/LandingPage.tsx';
 import { FeedbackDrawer } from './components/FeedbackDrawer.tsx';
 import { PriceHistoryModal } from './components/PriceHistoryModal.tsx';
 import { OrderBookModal } from './components/OrderBookModal.tsx';
@@ -39,7 +40,7 @@ type MarketDataState = Record<MarketCategory, {
 }>;
 
 export type ArbSortOrder = 'asc' | 'desc' | null;
-export type NavView = 'dashboard' | 'alpha' | 'how-it-works' | 'pricing' | 'terms' | 'privacy' | 'api-docs' | 'admin' | 'profile' | 'affiliate';
+export type NavView = 'landing' | 'dashboard' | 'alpha' | 'how-it-works' | 'pricing' | 'terms' | 'privacy' | 'api-docs' | 'admin' | 'profile' | 'affiliate';
 export type Theme = 'dark' | 'light';
 
 const STORAGE_KEY_ORDER = 'oddsaxiom_v1_stable_order';
@@ -69,7 +70,7 @@ const initialMarketState: MarketDataState = Object.values(MarketCategory).reduce
 }), {} as MarketDataState);
 
 export default function App() {
-  const [navView, setNavView] = useState<NavView>('dashboard');
+  const [navView, setNavView] = useState<NavView>('landing');
   const [activeSport, setActiveSport] = useState<MarketCategory>(MarketCategory.POLITICS);
   const [marketData, setMarketData] = useState<MarketDataState>(initialMarketState);
   const [selectedEvent, setSelectedEvent] = useState<MarketEvent | null>(null);
@@ -150,6 +151,8 @@ export default function App() {
             hideOnboardingTip: userData.hide_onboarding_tip,
           };
           setCurrentUser(user);
+          // Auto-navigate authenticated users to dashboard if they're on landing
+          setNavView(prev => prev === 'landing' ? 'dashboard' : prev);
 
           if (user.hideOnboardingTip) {
             setShowAutoTooltip(false);
@@ -346,7 +349,7 @@ export default function App() {
 
   const handleLogout = async () => {
     await signOut(auth);
-    setNavView('dashboard');
+    setNavView('landing');
   };
 
   const handleDontShowAgain = async (e: React.MouseEvent) => {
@@ -372,7 +375,14 @@ export default function App() {
         onToggleTheme={() => setTheme(prev => prev === 'dark' ? 'light' : 'dark')}
       />
       
-      {(navView === 'dashboard' || navView === 'alpha') ? (
+      {navView === 'landing' ? (
+        <div className="flex-1 overflow-y-auto">
+          <LandingPage
+            onSignUp={() => { setAuthInitialStep('lead'); setIsAuthModalOpen(true); }}
+            onNavChange={handleNavChange as any}
+          />
+        </div>
+      ) : (navView === 'dashboard' || navView === 'alpha') ? (
         <div className="flex flex-1 overflow-hidden relative">
           
           <Sidebar 
