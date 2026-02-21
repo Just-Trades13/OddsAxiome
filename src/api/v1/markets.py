@@ -1,77 +1,87 @@
-"""Market browsing and search endpoints.
+"""Market browsing, categories, and trending — powered by Redis live data."""
+from collections import Counter
 
-The PostgreSQL markets table is not yet populated — all live data comes from
-Redis via the /odds endpoints.  These endpoints query PostgreSQL and will
-return empty results until a backfill is implemented.  The /{market_id}
-endpoint gracefully returns 404 instead of crashing on invalid UUIDs.
-"""
-from uuid import UUID
-
+import redis.asyncio as aioredis
 from fastapi import APIRouter, Depends, Query
-from sqlalchemy.ext.asyncio import AsyncSession
 
-from src.core.database import get_db
-from src.core.dependencies import get_optional_user
-from src.core.exceptions import NotFoundError
-from src.schemas.common import PaginatedResponse, PaginationMeta
-from src.schemas.market import CategoryCountResponse, MarketResponse
-from src.services.market_service import (
-    get_category_counts,
-    get_market_by_id,
-    get_markets,
-    get_trending_markets,
-)
+from src.core.redis import get_redis
+from src.services.odds_service import get_all_live_odds
 
 router = APIRouter()
 
 
-@router.get("", response_model=PaginatedResponse)
+@router.get("")
 async def list_markets(
     category: str | None = None,
-    platform: str | None = None,
-    status: str = "active",
     search: str | None = None,
     page: int = Query(1, ge=1),
     per_page: int = Query(50, ge=1, le=200),
-    sort_by: str = "volume_usd",
-    db: AsyncSession = Depends(get_db),
+    redis: aioredis.Redis = Depends(get_redis),
 ):
-    """List markets with filtering, search, and pagination."""
-    markets, total = await get_markets(
-        db, category=category, platform_slug=platform, status=status,
-        search=search, page=page, per_page=per_page, sort_by=sort_by,
+    """List markets with optional category filter and search."""
+    # Fetch a large page from Redis live odds (enough for filtering)
+    result = await get_all_live_odds(redis, page=1, per_page=5000, category=category)
+    all_markets = result.get("data", [])
+
+    # Apply text search if provided
+    if search:
+        q = search.lower()
+        all_markets = [m for m in all_markets if q in m.get("market_title", "").lower()]
+
+    total = len(all_markets)
+    start = (page - 1) * per_page
+    end = start + per_page
+
+    return {
+        "data": all_markets[start:end],
+        "meta": {
+            "page": page,
+            "per_page": per_page,
+            "total": total,
+            "total_pages": (total + per_page - 1) // per_page if per_page else 1,
+        },
+    }
+
+
+@router.get("/categories")
+async def list_categories(redis: aioredis.Redis = Depends(get_redis)):
+    """Get available categories with market counts from live data."""
+    result = await get_all_live_odds(redis, page=1, per_page=5000)
+    all_markets = result.get("data", [])
+
+    counts = Counter(m.get("category", "unknown") for m in all_markets)
+    return sorted(
+        [{"category": cat, "count": cnt} for cat, cnt in counts.items()],
+        key=lambda x: x["count"],
+        reverse=True,
     )
-    total_pages = (total + per_page - 1) // per_page if per_page else 1
-
-    return PaginatedResponse(
-        data=[MarketResponse.model_validate(m) for m in markets],
-        meta=PaginationMeta(page=page, per_page=per_page, total=total, total_pages=total_pages),
-    )
 
 
-@router.get("/categories", response_model=list[CategoryCountResponse])
-async def list_categories(db: AsyncSession = Depends(get_db)):
-    """Get available categories with market counts."""
-    return await get_category_counts(db)
-
-
-@router.get("/trending", response_model=list[MarketResponse])
-async def trending_markets(db: AsyncSession = Depends(get_db)):
-    """Get top 20 markets by volume."""
-    markets = await get_trending_markets(db)
-    return [MarketResponse.model_validate(m) for m in markets]
+@router.get("/trending")
+async def trending_markets(
+    limit: int = Query(20, ge=1, le=100),
+    redis: aioredis.Redis = Depends(get_redis),
+):
+    """Get top markets by platform coverage (most cross-platform matches)."""
+    result = await get_all_live_odds(redis, page=1, per_page=limit)
+    # Already sorted by platform count descending in odds_service
+    return result.get("data", [])[:limit]
 
 
 @router.get("/{market_id}")
-async def get_market(market_id: str, db: AsyncSession = Depends(get_db)):
-    """Get a single market by ID."""
-    # Validate UUID format to prevent SQLAlchemy crash
-    try:
-        UUID(market_id)
-    except (ValueError, AttributeError):
+async def get_market(
+    market_id: str,
+    redis: aioredis.Redis = Depends(get_redis),
+):
+    """Get a single market by its external ID."""
+    from src.services.odds_service import get_live_odds_for_market
+
+    platforms = await get_live_odds_for_market(redis, market_id)
+    if not platforms:
+        from src.core.exceptions import NotFoundError
         raise NotFoundError("Market not found")
 
-    market = await get_market_by_id(db, market_id)
-    if not market:
-        raise NotFoundError("Market not found")
-    return MarketResponse.model_validate(market)
+    return {
+        "market_id": market_id,
+        "platforms": platforms,
+    }
