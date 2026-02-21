@@ -160,16 +160,6 @@ class KalshiWorker(BaseIngestionWorker):
 
                     event_count += 1
                     series_ticker = event.get("series_ticker", "").lower()
-                    if event_count <= 3:
-                        sample_ticker = active_markets[0].get("ticker", "")
-                        sample_url = f"https://kalshi.com/markets/{series_ticker or sample_ticker.lower()}"
-                        self.logger.info(
-                            "Kalshi URL debug v2",
-                            series_ticker=series_ticker,
-                            sample_ticker=sample_ticker,
-                            generated_url=sample_url,
-                            series_truthy=bool(series_ticker),
-                        )
 
                     # Count how many markets share each title.  When
                     # multiple candidates share a generic title (e.g.
