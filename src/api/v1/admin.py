@@ -1,12 +1,13 @@
 """Admin-only endpoints."""
 import redis.asyncio as aioredis
-from fastapi import APIRouter, Depends, Query
+from fastapi import APIRouter, Depends, Header, Query
 from pydantic import BaseModel
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.core.database import get_db
 from src.core.dependencies import get_admin_user
+from src.core.exceptions import ForbiddenError, UnauthorizedError
 from src.core.redis import get_redis
 from src.models.affiliate import Affiliate
 from src.models.market import Market
@@ -63,6 +64,7 @@ async def list_users(
 async def platform_metrics(
     admin: User = Depends(get_admin_user),
     db: AsyncSession = Depends(get_db),
+    redis: aioredis.Redis = Depends(get_redis),
 ):
     """Platform-wide metrics (admin only)."""
     total_users = (await db.execute(select(func.count(User.id)))).scalar() or 0
@@ -71,19 +73,23 @@ async def platform_metrics(
             select(func.count(Subscription.id)).where(Subscription.status == "active")
         )
     ).scalar() or 0
-    total_markets = (
-        await db.execute(
-            select(func.count(Market.id)).where(Market.status == "active")
-        )
-    ).scalar() or 0
     total_affiliates = (
         await db.execute(select(func.count(Affiliate.id)))
     ).scalar() or 0
 
+    # Count live markets from Redis (the actual data source)
+    live_markets = 0
+    async for _ in redis.scan_iter(match="odds:live:*", count=500):
+        live_markets += 1
+
+    # Count active arb opportunities
+    active_arbs = await redis.zcard("arb:active") or 0
+
     return {
         "total_users": total_users,
         "active_subscriptions": active_subs,
-        "active_markets": total_markets,
+        "active_markets": live_markets,
+        "active_arbs": active_arbs,
         "total_affiliates": total_affiliates,
     }
 
@@ -130,6 +136,51 @@ async def delete_user(
     user.is_active = False
     await db.commit()
     return {"detail": "User deactivated", "user_id": user_id}
+
+
+@router.post("/bootstrap")
+async def bootstrap_admin(
+    body: dict,
+    authorization: str = Header(None, alias="Authorization"),
+    db: AsyncSession = Depends(get_db),
+):
+    """Promote a user to admin using SECRET_KEY (not Firebase auth).
+
+    Usage: POST /api/v1/admin/bootstrap
+    Header: Authorization: Bearer <SECRET_KEY>
+    Body: {"email": "your@email.com"}
+    """
+    from src.core.config import settings
+    from src.core.exceptions import NotFoundError
+
+    if not authorization or not authorization.startswith("Bearer "):
+        raise UnauthorizedError("Missing Authorization header")
+
+    token = authorization.removeprefix("Bearer ").strip()
+    if token != settings.secret_key:
+        raise ForbiddenError("Invalid secret key")
+
+    email = body.get("email")
+    if not email:
+        raise NotFoundError("Provide 'email' in body")
+
+    result = await db.execute(select(User).where(User.email == email))
+    user = result.scalar_one_or_none()
+    if not user:
+        raise NotFoundError(f"User with email '{email}' not found — sign up first")
+
+    user.is_admin = True
+    user.tier = "pro"
+    await db.commit()
+    await db.refresh(user)
+
+    return {
+        "detail": "User promoted to admin + pro tier",
+        "user_id": str(user.id),
+        "email": user.email,
+        "is_admin": user.is_admin,
+        "tier": user.tier,
+    }
 
 
 @router.get("/ingestion/status")

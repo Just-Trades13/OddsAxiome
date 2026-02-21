@@ -27,6 +27,7 @@ interface Metrics {
   total_users: number;
   active_subscriptions: number;
   active_markets: number;
+  active_arbs: number;
   total_affiliates: number;
 }
 
@@ -365,6 +366,7 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({ onClose, currentUserEm
                 <MetricCard label="Total Users" value={metrics.total_users} icon={<Users className="w-5 h-5" />} color="emerald" />
                 <MetricCard label="Active Subscriptions" value={metrics.active_subscriptions} icon={<CheckCircle2 className="w-5 h-5" />} color="blue" />
                 <MetricCard label="Live Markets" value={metrics.active_markets} icon={<BarChart3 className="w-5 h-5" />} color="amber" />
+                <MetricCard label="Active Arbs" value={metrics.active_arbs} icon={<ShieldCheck className="w-5 h-5" />} color="indigo" />
                 <MetricCard label="Affiliates" value={metrics.total_affiliates} icon={<Globe className="w-5 h-5" />} color="indigo" />
               </>
             ) : (
