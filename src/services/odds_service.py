@@ -10,6 +10,25 @@ from src.models.odds import OddsSnapshot
 
 logger = structlog.get_logger()
 
+
+def _fix_kalshi_url(url: str) -> str:
+    """Ensure Kalshi URLs use lowercase series_ticker (no date/outcome suffixes).
+
+    Kalshi's website only resolves series-level URLs like /markets/kxfed.
+    Market-level tickers like KXFED-26DEC-T4.25 return 404.
+    """
+    if not url or "kalshi.com/markets/" not in url:
+        return url
+    path = url.split("kalshi.com/markets/", 1)[1]
+    # Already a clean lowercase series ticker
+    if path == path.lower() and "-" not in path:
+        return url
+    # Extract series ticker: first segment before any dash
+    parts = path.split("-")
+    if len(parts) > 1:
+        return f"https://kalshi.com/markets/{parts[0].lower()}"
+    return f"https://kalshi.com/markets/{path.lower()}"
+
 # Cache key for the canonical title map (rebuilt every 60s)
 _CANONICAL_MAP_KEY = "odds:canonical_map"
 _CANONICAL_MAP_TTL = 60
@@ -171,7 +190,10 @@ async def get_all_live_odds(
 
         parts = key.split(":", 3)
         market_id = parts[3] if len(parts) > 3 else ""
+        platform = data.get("platform", "unknown")
         platform_url = data.get("market_url", "")
+        if platform == "kalshi":
+            platform_url = _fix_kalshi_url(platform_url)
         mkt_category = data.get("category", "")
 
         if canonical not in markets:
@@ -184,8 +206,6 @@ async def get_all_live_odds(
             }
         elif not markets[canonical]["market_url"] and platform_url:
             markets[canonical]["market_url"] = platform_url
-
-        platform = data.get("platform", "unknown")
         outcomes = []
         i = 0
         while f"outcome_{i}_name" in data:
